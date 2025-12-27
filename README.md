@@ -1,3 +1,13 @@
+---
+title: YomisubAPI
+emoji: 📚
+colorFrom: red
+colorTo: indigo
+sdk: docker
+pinned: false
+short_description: Japanese text analysis API for language learning
+---
+
 # Yomisub API 📚
 
 A Japanese text analysis API for language learning. Built with FastAPI, SudachiPy, and JMDict.
