@@ -1,5 +1,5 @@
 # =============================================================================
-# Sub-Grabber API - Production Dockerfile (UV-optimized)
+# Yomisub API - Production Dockerfile (UV-optimized)
 # =============================================================================
 # Uses multi-stage build for minimal final image with uv caching optimization
 # =============================================================================
@@ -11,6 +11,16 @@ FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
 WORKDIR /app
 
+# Install Rust via rustup (newer than apt version, required for sudachipy)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Rust to PATH
+ENV PATH="/root/.cargo/bin:$PATH"
+
 # Set environment variables for reproducible builds
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -20,20 +30,17 @@ ENV UV_COMPILE_BYTECODE=1 \
 COPY pyproject.toml ./
 
 # Install dependencies into the virtual environment
-# We use --no-dev to exclude dev dependencies in production
 RUN uv venv /app/.venv && \
     uv pip install --python /app/.venv/bin/python -r pyproject.toml
 
 # Pre-download and cache Sudachi dictionary during build
-# This prevents runtime downloads and ensures the dict is available
-RUN /app/.venv/bin/python -c "from sudachipy import Dictionary; Dictionary()"
-
-# Pre-initialize jamdict database during build
-# This downloads JMdict, KanjiDic2 data if not present
-RUN /app/.venv/bin/python -c "from jamdict import Jamdict; jmd = Jamdict(); jmd.lookup('日本')" || true
+RUN /app/.venv/bin/python -c "from sudachipy import Dictionary; Dictionary(dict='full')"
 
 # Copy application source code
 COPY src/ ./src/
+
+# Copy data directory (JMDict)
+COPY data/ ./data/
 
 # -----------------------------------------------------------------------------
 # Stage 2: Production runtime (minimal)
@@ -57,11 +64,11 @@ COPY --from=builder /app/.venv /app/.venv
 # Copy application code
 COPY --from=builder /app/src /app/src
 
-# Copy jamdict data directory if it exists (for pre-cached dictionaries)
-COPY --from=builder /root/.jamdict /home/appuser/.jamdict 2>/dev/null || true
+# Copy data directory (JMDict)
+COPY --from=builder /app/data /app/data
 
 # Set ownership
-RUN chown -R appuser:appuser /app /home/appuser
+RUN chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
