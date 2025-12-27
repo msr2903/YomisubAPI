@@ -20,6 +20,15 @@ A Japanese text analysis API for language learning. Built with FastAPI, SudachiP
 - 📑 **Grammar Support** — Explanations for particles, auxiliaries, and pronouns
 - ⚡ **Fast** — In-memory dictionary with O(1) lookups
 - 🚫 **Name Filtering** — Automatically skips untranslated katakana (names)
+- 📱 **iOS Support** — Analyze text directly from your iPhone or iPad with Netflix, Apple TV, or any other streaming app with subtitles
+
+## iOS Shortcut (Netflix, Apple TV, etc. )
+
+You can use Yomisub API directly on your iOS device with streaming app using this Apple Shortcut:
+
+👉 **[Install Yomisub iOS Shortcut](https://www.icloud.com/shortcuts/520d8ae630684ad99b7a495e306cc64a)**
+
+This shortcut allows you to send subtitles from any streaming app with subtitles to your hosted API and receive the notifications in seconds.
 
 ## Quick Start
 
