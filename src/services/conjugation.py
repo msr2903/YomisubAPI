@@ -1416,6 +1416,7 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
         
         meaning = None
         grammar_note = None
+        tags = []
         
         if main_pos in {"名詞", "動詞", "形容詞", "形状詞", "副詞"}:
             # Get base reading for lookup
@@ -1485,7 +1486,7 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
             pos=pos_english,
             meaning=meaning,
             grammar_note=grammar_note,
-            tags=tags if 'tags' in locals() else [],
+            tags=tags,
             conjugation=conjugation_info,
         ))
         

@@ -83,6 +83,13 @@ def main():
         {"text": "言われてみれば分かる"}
     )
     
+    test_endpoint(
+        "Analyze Full - Names (JMNedict)",
+        "POST", "/analyze_full",
+        # Expect Suzuki and Tanaka
+        {"text": "鈴木さんは田中さんです"}
+    )
+    
     # Test /deconjugate
     test_endpoint(
         "Deconjugate - Complex Form",
