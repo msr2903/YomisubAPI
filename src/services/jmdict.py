@@ -4,16 +4,22 @@ JMdict-based dictionary service using jmdict-simplified JSON.
 This replaces jamdict with a faster, pure-Python dictionary lookup
 using the jmdict-simplified project's JSON format.
 
-Download the dictionary:
-  curl -L https://github.com/scriptin/jmdict-simplified/releases/latest/download/jmdict-eng-3.5.0.json.gz -o data/jmdict-eng.json.gz
-  gunzip data/jmdict-eng.json.gz
+The dictionary is automatically downloaded from the latest release
+if not found locally.
 """
 
 import gzip
 import json
+import re
+import urllib.request
 from functools import lru_cache
 from pathlib import Path
 from typing import Self
+
+
+# GitHub API endpoint for latest release
+JMDICT_RELEASES_API = "https://api.github.com/repos/scriptin/jmdict-simplified/releases/latest"
+JMDICT_DOWNLOAD_PATTERN = r"jmdict-eng-\d+\.\d+\.\d+\.json\.gz"
 
 
 class JMDictionary:
@@ -21,6 +27,7 @@ class JMDictionary:
     Fast Japanese-English dictionary using jmdict-simplified JSON.
     
     Builds an in-memory index for O(1) lookups by kanji/kana.
+    Automatically downloads the latest version if not found.
     """
     
     def __init__(self, dict_path: Path | str | None = None) -> None:
@@ -29,11 +36,12 @@ class JMDictionary:
         
         Args:
             dict_path: Path to jmdict-eng.json or jmdict-eng.json.gz
-                       If None, searches common locations.
+                       If None, searches common locations or downloads latest.
         """
         self._index_kanji: dict[str, list[dict]] = {}
         self._index_kana: dict[str, list[dict]] = {}
         self._loaded = False
+        self._version: str | None = None
         
         if dict_path:
             self._load(Path(dict_path))
@@ -41,26 +49,113 @@ class JMDictionary:
             self._find_and_load()
     
     def _find_and_load(self) -> None:
-        """Find dictionary file in common locations."""
+        """Find dictionary file in common locations or download if not found."""
+        data_dir = Path(__file__).parent.parent.parent / "data"
+        
         search_paths = [
-            Path(__file__).parent.parent.parent / "data" / "jmdict-eng.json",
-            Path(__file__).parent.parent.parent / "data" / "jmdict-eng.json.gz",
+            data_dir / "jmdict-eng.json",
+            data_dir / "jmdict-eng.json.gz",
             Path.home() / ".jmdict" / "jmdict-eng.json",
             Path("/app/data/jmdict-eng.json"),
+            Path("/app/data/jmdict-eng.json.gz"),
         ]
+        
+        # Also search for versioned files
+        if data_dir.exists():
+            for f in data_dir.glob("jmdict-eng-*.json*"):
+                search_paths.insert(0, f)
         
         for path in search_paths:
             if path.exists():
                 self._load(path)
                 return
         
-        # No dictionary found - will use empty index
-        print(f"⚠️ JMdict not found. Searched: {[str(p) for p in search_paths]}")
-        print("  Download: curl -L https://github.com/scriptin/jmdict-simplified/releases/latest/download/jmdict-eng-3.5.0.json.gz -o data/jmdict-eng.json.gz && gunzip data/jmdict-eng.json.gz")
+        # No dictionary found - try to download
+        print("📥 JMdict not found locally. Attempting to download latest version...")
+        try:
+            self._download_latest(data_dir)
+        except Exception as e:
+            print(f"⚠️ Failed to download JMdict: {e}")
+            print("  Manual download: curl -L https://github.com/scriptin/jmdict-simplified/releases/latest/download/jmdict-eng-3.5.0.json.gz -o data/jmdict-eng.json.gz")
+    
+    def _get_latest_release_info(self) -> tuple[str, str] | None:
+        """
+        Get the latest release download URL and version from GitHub API.
+        
+        Returns:
+            Tuple of (download_url, version) or None if failed.
+        """
+        try:
+            req = urllib.request.Request(
+                JMDICT_RELEASES_API,
+                headers={"User-Agent": "YomisubAPI", "Accept": "application/vnd.github.v3+json"}
+            )
+            with urllib.request.urlopen(req, timeout=30) as response:
+                data = json.loads(response.read().decode())
+                
+                version = data.get("tag_name", "unknown")
+                assets = data.get("assets", [])
+                
+                # Find the English dictionary file
+                for asset in assets:
+                    name = asset.get("name", "")
+                    if re.match(JMDICT_DOWNLOAD_PATTERN, name):
+                        return asset.get("browser_download_url"), version
+                
+                print(f"⚠️ No English dictionary found in release assets")
+                return None
+        except Exception as e:
+            print(f"⚠️ Failed to fetch release info: {e}")
+            return None
+    
+    def _download_latest(self, data_dir: Path) -> None:
+        """Download the latest JMdict from GitHub releases."""
+        release_info = self._get_latest_release_info()
+        
+        if not release_info:
+            raise RuntimeError("Could not find latest release info")
+        
+        download_url, version = release_info
+        print(f"📦 Downloading JMdict {version}...")
+        
+        # Create data directory if needed
+        data_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Download file
+        target_path = data_dir / "jmdict-eng.json.gz"
+        
+        req = urllib.request.Request(download_url, headers={"User-Agent": "YomisubAPI"})
+        with urllib.request.urlopen(req, timeout=300) as response:  # 5 min timeout for large file
+            total_size = int(response.headers.get("Content-Length", 0))
+            downloaded = 0
+            chunk_size = 1024 * 1024  # 1MB chunks
+            
+            with open(target_path, "wb") as f:
+                while True:
+                    chunk = response.read(chunk_size)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    if total_size:
+                        pct = (downloaded / total_size) * 100
+                        print(f"\r   Downloaded: {downloaded // (1024*1024)} MB / {total_size // (1024*1024)} MB ({pct:.1f}%)", end="", flush=True)
+        
+        print()  # New line after download progress
+        print(f"✅ Downloaded to {target_path}")
+        
+        # Load the downloaded file
+        self._load(target_path)
+        self._version = version
     
     def _load(self, path: Path) -> None:
         """Load and index the dictionary."""
         print(f"📚 Loading JMdict from {path}...")
+        
+        # Extract version from filename if possible
+        match = re.search(r"jmdict-eng-(\d+\.\d+\.\d+)", path.name)
+        if match:
+            self._version = match.group(1)
         
         # Handle gzipped files
         if path.suffix == ".gz":
@@ -69,6 +164,10 @@ class JMDictionary:
         else:
             with open(path, encoding="utf-8") as f:
                 data = json.load(f)
+        
+        # Get version from file metadata if available
+        if "version" in data:
+            self._version = data["version"]
         
         # Build index
         words = data.get("words", [])
@@ -90,7 +189,8 @@ class JMDictionary:
                     self._index_kana[text].append(entry)
         
         self._loaded = True
-        print(f"✓ Loaded {len(words)} entries ({len(self._index_kanji)} kanji, {len(self._index_kana)} kana)")
+        version_str = f" (v{self._version})" if self._version else ""
+        print(f"✓ Loaded {len(words)} entries ({len(self._index_kanji)} kanji, {len(self._index_kana)} kana){version_str}")
     
     @classmethod
     @lru_cache(maxsize=1)
@@ -145,3 +245,8 @@ class JMDictionary:
     def is_loaded(self) -> bool:
         """Check if dictionary was successfully loaded."""
         return self._loaded
+    
+    @property
+    def version(self) -> str | None:
+        """Get the JMDict version if known."""
+        return self._version
