@@ -1100,7 +1100,7 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
         
         # Only include content words: nouns, verbs, na-adjectives, pronouns
         # Skip i-adjectives that are non-independent (like ない in 好きじゃない)
-        if main_pos not in {"名詞", "動詞", "形状詞", "代名詞"}:
+        if main_pos not in {"名詞", "動詞", "形状詞", "代名詞", "副詞", "接続詞", "連体詞"}:
             # Exception: independent i-adjectives are OK (高い, 美しい)
             if main_pos == "形容詞" and sub_pos != "非自立可能":
                 pass  # Allow it
@@ -1283,6 +1283,8 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
                     conjugation_hint = "must; have to (casual)"
                 elif "なくちゃいけない" in compound_surface or "なくちゃならない" in compound_surface:
                     conjugation_hint = "must; have to (casual)"
+                elif compound_surface.endswith("なきゃ") or compound_surface.endswith("なくちゃ"):
+                    conjugation_hint = "must (casual)"
                 elif "なければならない" in compound_surface or "なければいけない" in compound_surface:
                     conjugation_hint = "must; have to"
                 elif "ないといけない" in compound_surface:
@@ -1446,6 +1448,8 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
                     fallback_summary = "must; have to (casual)"
                 elif "なくちゃいけない" in compound_surface or "なくちゃならない" in compound_surface:
                     fallback_summary = "must; have to (casual)"
+                elif compound_surface.endswith("なきゃ") or compound_surface.endswith("なくちゃ"):
+                    fallback_summary = "must (casual)"
                 elif "なければならない" in compound_surface or "なければいけない" in compound_surface:
                     fallback_summary = "must; have to"
                 elif "ないといけない" in compound_surface:
