@@ -16,11 +16,12 @@ A comprehensive Japanese text analysis API with advanced conjugation support, po
 ## Features
 
 - 🔍 **Smart Tokenization** - Uses SudachiPy with SplitMode.C to keep compound nouns together
-- 📚 **Dictionary Lookup** - JMDict-powered meanings (214k+ entries) with O(1) lookups
+- 📚 **Auto-Download Dictionary** - JMDict automatically downloaded from latest release (214k+ entries)
 - 🧩 **Conjugation Analysis** - Deconjugate verbs and adjectives with detailed breakdowns
 - 🎯 **30+ Auxiliary Constructions** - Potential, passive, causative, benefactive, and more
 - 📝 **150+ Grammar Patterns** - Common JLPT N5-N2 grammar phrases detected automatically
 - 📑 **Grammar Support** - Explanations for particles, auxiliaries, and pronouns
+- 🌐 **Natural English** - Uses lemminflect for accurate past tense (ate, went, thought)
 - 🚫 **Name Filtering** - Automatically skips untranslated katakana (names)
 - 📱 **iOS Support** - Analyze text directly from your iPhone or iPad with Netflix, Apple TV, or any other streaming app
 
@@ -149,15 +150,17 @@ YomisubAPI/
 │       ├── adjective.py     # Adjective conjugation
 │       └── jmdict.py        # Dictionary lookup
 ├── data/
-│   └── jmdict-eng-3.5.0.json
+│   └── jmdict-eng.json.gz   # Auto-downloaded on first run
 ├── docs/
-│   └── index.html           # API Documentation
+│   ├── index.html           # API Documentation
+│   └── developer.html       # Developer Guide
 └── pyproject.toml
 ```
 
 ## Documentation
 
-See [`docs/index.html`](docs/index.html) for detailed API documentation with interactive examples.
+- **[API Documentation](docs/index.html)** - Endpoints, examples, and grammar patterns
+- **[Developer Guide](docs/developer.html)** - Architecture, adding grammar, and internals
 
 ## Live API
 

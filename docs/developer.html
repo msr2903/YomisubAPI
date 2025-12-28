@@ -1056,18 +1056,31 @@ morphemes = tokenizer.tokenize(<span class="string">"食べた"</span>, SplitMod
             <h2>Translation Hints</h2>
             <p>Generate natural English hints for conjugated forms.</p>
 
-            <h3>Irregular Past Tense</h3>
-            <p>English irregular verbs are handled with a lookup table:</p>
+            <h3>Past Tense with lemminflect</h3>
+            <p>We use the <code>lemminflect</code> library for accurate English verb conjugation:</p>
 
-            <pre><code>IRREGULAR_PAST_TENSE = {
-    <span class="string">"eat"</span>: <span class="string">"ate"</span>,      <span class="comment"># not "eated"</span>
-    <span class="string">"go"</span>: <span class="string">"went"</span>,      <span class="comment"># not "goed"</span>
-    <span class="string">"think"</span>: <span class="string">"thought"</span>, <span class="comment"># not "thinked"</span>
-    <span class="string">"buy"</span>: <span class="string">"bought"</span>,
-    <span class="string">"come"</span>: <span class="string">"came"</span>,
-    <span class="string">"see"</span>: <span class="string">"saw"</span>,
-    <span class="comment"># ... 50+ more</span>
-}</code></pre>
+            <pre><code><span class="keyword">from</span> lemminflect <span class="keyword">import</span> getInflection
+
+<span class="keyword">def</span> <span class="function">_inflect_past</span>(verb: <span class="class">str</span>) -> <span class="class">str</span>:
+    <span class="string">"""Use lemminflect to get past tense form."""</span>
+    <span class="keyword">try</span>:
+        <span class="comment"># VBD = past tense verb in Penn Treebank tags</span>
+        result = getInflection(verb, tag=<span class="string">'VBD'</span>)
+        <span class="keyword">if</span> result:
+            <span class="keyword">return</span> result[<span class="number">0</span>]
+    <span class="keyword">except</span> <span class="class">Exception</span>:
+        <span class="keyword">pass</span>
+    <span class="keyword">return</span> _make_regular_past(verb)
+
+<span class="comment"># Examples:</span>
+<span class="comment"># eat → ate ✓     (not "eated")</span>
+<span class="comment"># go → went ✓     (not "goed")</span>
+<span class="comment"># sing → sang ✓   (not "singed")</span>
+<span class="comment"># think → thought ✓</span></code></pre>
+
+            <div class="callout callout-success">
+                <p><strong>Advantage:</strong> lemminflect handles ALL irregular English verbs automatically - no manual dictionary maintenance required!</p>
+            </div>
 
             <h3>Hint Generation Pipeline</h3>
             <pre><code><span class="keyword">def</span> <span class="function">generate_translation_hint</span>(meaning, auxiliaries, conjugation):
@@ -1082,7 +1095,7 @@ morphemes = tokenizer.tokenize(<span class="string">"食べた"</span>, SplitMod
     
     <span class="comment"># Apply conjugation</span>
     <span class="keyword">match</span> conjugation:
-        <span class="keyword">case</span> TA:   hint = make_past_tense(hint)  <span class="comment"># "ate"</span>
+        <span class="keyword">case</span> TA:   hint = make_past_tense(hint)  <span class="comment"># uses lemminflect</span>
         <span class="keyword">case</span> TE:   hint = <span class="string">f"</span>{hint}<span class="string"> and..."</span>
     
     <span class="keyword">return</span> hint</code></pre>
