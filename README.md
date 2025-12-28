@@ -157,6 +157,21 @@ YomisubAPI/
 └── pyproject.toml
 ```
 
+## Capabilities & Limitations
+
+### ✅ Verified Capabilities
+- **Smart Counters**: Correctly identifies counters like `一本` (one long thing) vs `本` (book) using fuzzy phonetic matching (`pon` ≈ `hon`).
+- **Complex Conjugations**: Deconjugates chains like `食べさせられた` (Causative-Passive) or `なきゃ` (Casual Must).
+- **Rich Vocabulary**: Includes Adverbs, Conjunctions, and Onomatopoeia (`ドキドキ`, `ペラペラ`).
+- **Clean Output**: `/analyze_simple` provides a noise-free vocabulary list, ideal for flashcards.
+- **Deep Grammar**: `/analyze_full` provides POS tags (`Transitive`, `Slang`, `Humble`) and breakdown of every particle.
+
+### ⚠️ Known Limitations
+- **Homographs**: Contextual reading selection (e.g. `辛い` as *spicy* vs *painful*) depends on Sudachi's tokenization model and may occasionally be incorrect.
+- **Idioms**: Multi-word idioms (e.g. `腹が立つ` - to get angry) are usually split into individual words (`Stomach` + `Stand`) unless they are single dictionary tokens.
+- **Slang Negations**: In simple analysis, slang negations like `〜んじゃねー` might be filtered out, leaving only the main verb. Use full analysis for these.
+- **Proper Names**: Names not in the main JMDict (e.g. specific surnames) may appear without definitions.
+
 ## Documentation
 
 - **[API Documentation](docs/index.html)** - Endpoints, examples, and grammar patterns
