@@ -805,6 +805,14 @@ morphemes = tokenizer.tokenize(<span class="string">"食べた"</span>, SplitMod
         <span class="keyword">if</span> score > best_score:
             best_entry = entry</code></pre>
 
+            <h3 id="jmdict-metadata">Metadata Extraction</h3>
+            <p>The API extracts rich metadata from dictionary entries to provide context in the <code>tags</code> field:</p>
+            <ul>
+                <li><strong>Part of Speech</strong>: Transitive (vt), Intransitive (vi), Adjective</li>
+                <li><strong>Attributes</strong>: Usually Kana (uk), Honorific (hon), Humble (hum)</li>
+                <li><strong>Usage</strong>: Slang (sl), Reference (comp/med/food), Dialect (ksb)</li>
+            </ul>
+
             <h3 id="jmdict-download">Auto-Download</h3>
             <p>If the dictionary isn't found locally, it's automatically downloaded from GitHub:</p>
 
