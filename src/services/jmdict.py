@@ -214,9 +214,12 @@ class JMDictionary:
         
         for path in search_paths:
             if path.exists():
-                self._load_names(path)
-                return
-        
+                try:
+                    self._load_names(path)
+                    return
+                except Exception as e:
+                    print(f"⚠️ Failed to load {path}: {e}")
+
         # Download
         print("📥 JMNedict (Names) not found locally. Attempting to download...")
         try:
@@ -375,14 +378,12 @@ class JMDictionary:
                 return None
             
             t = translations[0]
-            dets = t.get("transDet", [])
-            if not dets:
+            # v3.6.1 structure: translation -> translation -> text
+            texts = [x.get("text", "") for x in t.get("translation", [])]
+            if not texts:
                 return None
                 
-            meaning = "; ".join(dets[:3])
-            # Optionally add name type?
-            # name_types = t.get("nameType", [])
-            # if name_types: meaning += f" ({', '.join(name_types)})"
+            meaning = "; ".join(texts[:3])
             return meaning
 
         senses = entry.get("sense", [])
@@ -412,15 +413,16 @@ class JMDictionary:
                 return None
             
             t = translations[0]
-            dets = t.get("transDet", [])
-            if not dets:
+            # v3.6.1 structure: translation -> translation -> text
+            texts = [x.get("text", "") for x in t.get("translation", [])]
+            if not texts:
                 return None
             
-            meaning = "; ".join(dets[:3])
+            meaning = "; ".join(texts[:3])
             tags = {"Name"}
             
-            # Add name types (surname, given name, etc)
-            for nt in t.get("nameType", []):
+            # Add name types (surname, given name, etc) - key is "type"
+            for nt in t.get("type", []):
                 tags.add(nt.title())
                 
             return {"meaning": meaning, "tags": sorted(list(tags))}
