@@ -13,6 +13,7 @@ import json
 import re
 import unicodedata
 import urllib.request
+import zipfile
 from functools import lru_cache
 from pathlib import Path
 from typing import Self
@@ -21,6 +22,7 @@ from typing import Self
 # GitHub API endpoint for latest release
 JMDICT_RELEASES_API = "https://api.github.com/repos/scriptin/jmdict-simplified/releases/latest"
 JMDICT_DOWNLOAD_PATTERN = r"jmdict-eng-\d+\.\d+\.\d+\.json\.gz"
+JMNEDICT_DOWNLOAD_PATTERN = r"jmnedict-all-.*\.json\.zip"
 
 
 class JMDictionary:
@@ -41,6 +43,9 @@ class JMDictionary:
         """
         self._index_kanji: dict[str, list[dict]] = {}
         self._index_kana: dict[str, list[dict]] = {}
+        self._index_names_kanji: dict[str, list[dict]] = {}
+        self._index_names_kana: dict[str, list[dict]] = {}
+        
         self._loaded = False
         self._version: str | None = None
         
@@ -48,6 +53,7 @@ class JMDictionary:
             self._load(Path(dict_path))
         else:
             self._find_and_load()
+            self._find_and_load_names()
     
     def _find_and_load(self) -> None:
         """Find dictionary file in common locations or download if not found."""
@@ -79,7 +85,7 @@ class JMDictionary:
             print(f"⚠️ Failed to download JMdict: {e}")
             print("  Manual download: curl -L https://github.com/scriptin/jmdict-simplified/releases/latest/download/jmdict-eng-3.5.0.json.gz -o data/jmdict-eng.json.gz")
     
-    def _get_latest_release_info(self) -> tuple[str, str] | None:
+    def _get_latest_release_info(self, pattern: str) -> tuple[str, str] | None:
         """
         Get the latest release download URL and version from GitHub API.
         
@@ -97,10 +103,10 @@ class JMDictionary:
                 version = data.get("tag_name", "unknown")
                 assets = data.get("assets", [])
                 
-                # Find the English dictionary file
+                # Find the requested file
                 for asset in assets:
                     name = asset.get("name", "")
-                    if re.match(JMDICT_DOWNLOAD_PATTERN, name):
+                    if re.match(pattern, name):
                         return asset.get("browser_download_url"), version
                 
                 print(f"⚠️ No English dictionary found in release assets")
@@ -111,7 +117,7 @@ class JMDictionary:
     
     def _download_latest(self, data_dir: Path) -> None:
         """Download the latest JMdict from GitHub releases."""
-        release_info = self._get_latest_release_info()
+        release_info = self._get_latest_release_info(JMDICT_DOWNLOAD_PATTERN)
         
         if not release_info:
             raise RuntimeError("Could not find latest release info")
@@ -193,6 +199,95 @@ class JMDictionary:
         version_str = f" (v{self._version})" if self._version else ""
         print(f"✓ Loaded {len(words)} entries ({len(self._index_kanji)} kanji, {len(self._index_kana)} kana){version_str}")
     
+    def _find_and_load_names(self) -> None:
+        """Find name dictionary file in common locations or download."""
+        data_dir = Path(__file__).parent.parent.parent / "data"
+        
+        search_paths = [
+            data_dir / "jmnedict-eng.json",
+            data_dir / "jmnedict-eng.json.gz",
+        ]
+        
+        if data_dir.exists():
+            for f in data_dir.glob("jmnedict-eng-*.json*"):
+                search_paths.insert(0, f)
+        
+        for path in search_paths:
+            if path.exists():
+                self._load_names(path)
+                return
+        
+        # Download
+        print("📥 JMNedict (Names) not found locally. Attempting to download...")
+        try:
+            self._download_latest_names(data_dir)
+        except Exception as e:
+            print(f"⚠️ Failed to download JMNedict: {e}")
+
+    def _download_latest_names(self, data_dir: Path) -> None:
+        """Download latest JMNedict (Zip)."""
+        release_info = self._get_latest_release_info(JMNEDICT_DOWNLOAD_PATTERN)
+        if not release_info:
+            raise RuntimeError("Could not find latest JMNedict release (zip)")
+            
+        download_url, version = release_info
+        print(f"📦 Downloading JMNedict {version}...")
+        data_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Temp zip path
+        zip_path = data_dir / "jmnedict_temp.zip"
+        
+        req = urllib.request.Request(download_url, headers={"User-Agent": "YomisubAPI"})
+        with urllib.request.urlopen(req, timeout=300) as response:
+            with open(zip_path, "wb") as f:
+                while True:
+                    chunk = response.read(1024*1024)
+                    if not chunk: break
+                    f.write(chunk)
+                    
+        print(f"📦 Extracting JMNedict...")
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zf:
+                # Find the json file inside
+                json_files = [n for n in zf.namelist() if n.endswith('.json')]
+                if not json_files:
+                    raise RuntimeError("No JSON found in JMNedict zip")
+                
+                source_filename = json_files[0]
+                target_path = data_dir / "jmnedict-eng.json"
+                
+                with zf.open(source_filename) as source, open(target_path, "wb") as target:
+                    target.write(source.read())
+                    
+            print(f"✅ Extracted Names to {target_path}")
+            self._load_names(target_path)
+        finally:
+            if zip_path.exists():
+                zip_path.unlink()
+
+    def _load_names(self, path: Path) -> None:
+        """Load and index name dictionary."""
+        print(f"📚 Loading JMNedict from {path}...")
+        if path.suffix == ".gz":
+            with gzip.open(path, "rt", encoding="utf-8") as f: data = json.load(f)
+        else:
+            with open(path, encoding="utf-8") as f: data = json.load(f)
+            
+        words = data.get("words", [])
+        for entry in words:
+            entry["_is_name"] = True
+            for kanji in entry.get("kanji", []):
+                t = kanji.get("text", "")
+                if t: 
+                    if t not in self._index_names_kanji: self._index_names_kanji[t] = []
+                    self._index_names_kanji[t].append(entry)
+            for kana in entry.get("kana", []):
+                t = kana.get("text", "")
+                if t:
+                    if t not in self._index_names_kana: self._index_names_kana[t] = []
+                    self._index_names_kana[t].append(entry)
+        print(f"✓ Loaded {len(words)} name entries")
+
     @classmethod
     @lru_cache(maxsize=1)
     def get_instance(cls) -> Self:
@@ -208,9 +303,13 @@ class JMDictionary:
         # Filter out combining voiced sound marks (U+3099) and semi-voiced (U+309A)
         return "".join(c for c in normalized if c not in ('\u3099', '\u309a'))
 
-    def _find_best_entry(self, word: str, reading: str | None = None, is_counter: bool = False) -> dict | None:
+    def _find_best_entry(self, word: str, reading: str | None = None, is_counter: bool = False, include_names: bool = False) -> dict | None:
         """Find the best matching dictionary entry."""
         entries = self._index_kanji.get(word) or self._index_kana.get(word)
+        
+        # If no standard entry, check names if requested
+        if not entries and include_names:
+            entries = self._index_names_kanji.get(word) or self._index_names_kana.get(word)
         
         if not entries:
             return None
@@ -264,11 +363,28 @@ class JMDictionary:
         return best_entry or entries[0]
 
     def lookup(self, word: str, reading: str | None = None, is_counter: bool = False) -> str | None:
-        """Look up meaning (string only)."""
-        entry = self._find_best_entry(word, reading, is_counter)
+        """Look up meaning (string only). Names excluded."""
+        entry = self._find_best_entry(word, reading, is_counter, include_names=False)
         if not entry:
             return None
         
+        # Handle Name entries
+        if entry.get("_is_name"):
+            translations = entry.get("translation", [])
+            if not translations:
+                return None
+            
+            t = translations[0]
+            dets = t.get("transDet", [])
+            if not dets:
+                return None
+                
+            meaning = "; ".join(dets[:3])
+            # Optionally add name type?
+            # name_types = t.get("nameType", [])
+            # if name_types: meaning += f" ({', '.join(name_types)})"
+            return meaning
+
         senses = entry.get("sense", [])
         if not senses:
             return None
@@ -284,11 +400,31 @@ class JMDictionary:
         return "; ".join(glosses[:3]) if glosses else None
 
     def lookup_details(self, word: str, reading: str | None = None, is_counter: bool = False) -> dict | None:
-        """Look up meaning and tags."""
-        entry = self._find_best_entry(word, reading, is_counter)
+        """Look up meaning and tags. Includes names."""
+        entry = self._find_best_entry(word, reading, is_counter, include_names=True)
         if not entry:
             return None
             
+        # Handle Name entries
+        if entry.get("_is_name"):
+            translations = entry.get("translation", [])
+            if not translations:
+                return None
+            
+            t = translations[0]
+            dets = t.get("transDet", [])
+            if not dets:
+                return None
+            
+            meaning = "; ".join(dets[:3])
+            tags = {"Name"}
+            
+            # Add name types (surname, given name, etc)
+            for nt in t.get("nameType", []):
+                tags.add(nt.title())
+                
+            return {"meaning": meaning, "tags": sorted(list(tags))}
+
         senses = entry.get("sense", [])
         if not senses:
             return None
