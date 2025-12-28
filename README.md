@@ -1,3 +1,14 @@
+---
+title: Yomisub API
+emoji: 📚
+colorFrom: red
+colorTo: blue
+sdk: docker
+pinned: false
+license: mit
+app_port: 7860
+---
+
 # Yomisub API
 
 A comprehensive Japanese text analysis API with advanced conjugation support, powered by SudachiPy and JMDict.
