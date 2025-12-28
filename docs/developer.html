@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yomisub API - Developer Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a1a;
+            --bg-secondary: #12122a;
+            --bg-tertiary: #1a1a3a;
+            --bg-code: #0d0d20;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #2d2d5a;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem 0;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .nav-header {
+            padding: 0 1.5rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-header h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-header .subtitle {
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        .nav-section {
+            margin: 1rem 0;
+        }
+
+        .nav-section-title {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            padding: 0.5rem 1.5rem;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.4rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent-primary);
+            border-left-color: var(--accent-primary);
+        }
+
+        .nav-link.sub {
+            padding-left: 2.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Main Content */
+        main {
+            margin-left: 300px;
+            padding: 2.5rem 4rem;
+            max-width: 1100px;
+        }
+
+        section {
+            margin-bottom: 4rem;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border-color);
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 2rem 0 1rem;
+            color: var(--accent-primary);
+        }
+
+        h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--text-primary);
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        ul, ol {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin: 0.5rem 0;
+        }
+
+        /* Code */
+        pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-tertiary);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: var(--accent-secondary);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: var(--text-primary);
+        }
+
+        .code-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Syntax Highlighting */
+        .keyword { color: #c792ea; }
+        .string { color: #c3e88d; }
+        .comment { color: #546e7a; }
+        .function { color: #82aaff; }
+        .class { color: #ffcb6b; }
+        .number { color: #f78c6c; }
+        .decorator { color: #89ddff; }
+
+        /* Diagram Box */
+        .diagram {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .diagram .box {
+            color: var(--accent-primary);
+        }
+
+        .diagram .arrow {
+            color: var(--warning);
+        }
+
+        .diagram .label {
+            color: var(--success);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        td:first-child {
+            color: var(--accent-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        tr:hover td {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-icon {
+            font-size: 1.5rem;
+        }
+
+        .card h4 {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        /* Module Cards */
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .module-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .module-card:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.1);
+        }
+
+        .module-card h4 {
+            margin: 0 0 0.5rem;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .module-card h4 code {
+            font-size: 0.9rem;
+        }
+
+        .module-card p {
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        /* Flow Steps */
+        .flow-steps {
+            position: relative;
+            margin: 2rem 0;
+        }
+
+        .flow-step {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+            padding-top: 0.5rem;
+        }
+
+        .step-content h4 {
+            margin: 0 0 0.5rem;
+        }
+
+        .step-content p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Callouts */
+        .callout {
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-left: 4px solid;
+        }
+
+        .callout-info {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--info);
+        }
+
+        .callout-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: var(--warning);
+        }
+
+        .callout-success {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--success);
+        }
+
+        .callout-error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--error);
+        }
+
+        .callout p {
+            margin: 0;
+        }
+
+        .callout strong {
+            color: var(--text-primary);
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .tag-singleton { background: rgba(139, 92, 246, 0.2); color: var(--accent-secondary); }
+        .tag-enum { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .tag-dict { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .tag-func { background: rgba(59, 130, 246, 0.2); color: var(--info); }
+
+        /* Japanese Examples */
+        .jp-example {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .jp-example .japanese {
+            font-size: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .jp-example .arrow {
+            color: var(--accent-primary);
+            font-size: 1.2rem;
+        }
+
+        .jp-example .result {
+            color: var(--success);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Tree structure */
+        .tree {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            background: var(--bg-code);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin: 1rem 0;
+        }
+
+        .tree-item {
+            padding: 0.25rem 0;
+        }
+
+        .tree-item .indent {
+            color: var(--text-muted);
+        }
+
+        .tree-item .file {
+            color: var(--accent-secondary);
+        }
+
+        .tree-item .folder {
+            color: var(--warning);
+        }
+
+        .tree-item .comment {
+            color: var(--text-muted);
+            margin-left: 1rem;
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        section {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 1000px) {
+            nav {
+                transform: translateX(-100%);
+            }
+            main {
+                margin-left: 0;
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-header">
+            <h1>Yomisub API</h1>
+            <div class="subtitle">Developer Documentation</div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Overview</div>
+            <a href="#architecture" class="nav-link">Architecture</a>
+            <a href="#data-flow" class="nav-link">Data Flow</a>
+            <a href="#folder-structure" class="nav-link">Folder Structure</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Core Modules</div>
+            <a href="#analyzer" class="nav-link">analyzer.py</a>
+            <a href="#analyzer-tokenization" class="nav-link sub">Tokenization</a>
+            <a href="#analyzer-splitmode" class="nav-link sub">SplitMode</a>
+            <a href="#jmdict" class="nav-link">jmdict.py</a>
+            <a href="#jmdict-indexing" class="nav-link sub">Indexing</a>
+            <a href="#jmdict-download" class="nav-link sub">Auto-Download</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Conjugation Engine</div>
+            <a href="#verb" class="nav-link">verb.py</a>
+            <a href="#verb-enums" class="nav-link sub">Enums</a>
+            <a href="#verb-rules" class="nav-link sub">Rules</a>
+            <a href="#verb-deconjugate" class="nav-link sub">Deconjugation</a>
+            <a href="#adjective" class="nav-link">adjective.py</a>
+            <a href="#conjugation" class="nav-link">conjugation.py</a>
+            <a href="#conjugation-phrases" class="nav-link sub">Phrase Detection</a>
+            <a href="#conjugation-grouping" class="nav-link sub">Morpheme Grouping</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Extending</div>
+            <a href="#adding-grammar" class="nav-link">Adding Grammar</a>
+            <a href="#translation-hints" class="nav-link">Translation Hints</a>
+            <a href="#troubleshooting" class="nav-link">Troubleshooting</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Architecture -->
+        <section id="architecture">
+            <h2>Architecture Overview</h2>
+            <p>Yomisub API uses a layered architecture where each module has a specific responsibility. The main orchestration happens in <code>conjugation.py</code>, which coordinates all other modules.</p>
+
+            <div class="diagram">
+<span class="box">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="box">│</span>                     <span class="label">main.py (FastAPI)</span>                          <span class="box">│</span>
+<span class="box">│</span>           Routes: /analyze, /analyze_simple, /analyze_full     <span class="box">│</span>
+<span class="box">└──────────────────────────────┬──────────────────────────────────┘</span>
+                               <span class="arrow">│</span>
+                               <span class="arrow">▼</span>
+<span class="box">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="box">│</span>                    <span class="label">conjugation.py</span>                                <span class="box">│</span>
+<span class="box">│</span>              Main orchestration layer                           <span class="box">│</span>
+<span class="box">│</span>  • analyze_full()      • COMPOUND_PHRASES dictionary            <span class="box">│</span>
+<span class="box">│</span>  • analyze_simple()    • try_deconjugate_verb()                 <span class="box">│</span>
+<span class="box">│</span>  • GRAMMAR_MAP         • build_conjugation_info()               <span class="box">│</span>
+<span class="box">└────────┬─────────────────────┬───────────────────┬──────────────┘</span>
+         <span class="arrow">│</span>                     <span class="arrow">│</span>                   <span class="arrow">│</span>
+         <span class="arrow">▼</span>                     <span class="arrow">▼</span>                   <span class="arrow">▼</span>
+<span class="box">┌─────────────────┐</span>  <span class="box">┌─────────────────┐</span>  <span class="box">┌─────────────────┐</span>
+<span class="box">│</span> <span class="label">analyzer.py</span>     <span class="box">│</span>  <span class="box">│</span>    <span class="label">verb.py</span>      <span class="box">│</span>  <span class="box">│</span> <span class="label">adjective.py</span>   <span class="box">│</span>
+<span class="box">│</span> SudachiPy       <span class="box">│</span>  <span class="box">│</span> Verb rules     <span class="box">│</span>  <span class="box">│</span> Adj rules      <span class="box">│</span>
+<span class="box">│</span> tokenization    <span class="box">│</span>  <span class="box">│</span> conjugate()   <span class="box">│</span>  <span class="box">│</span> conjugate()   <span class="box">│</span>
+<span class="box">│</span>                 <span class="box">│</span>  <span class="box">│</span> deconjugate() <span class="box">│</span>  <span class="box">│</span> deconjugate() <span class="box">│</span>
+<span class="box">└────────┬────────┘</span>  <span class="box">└─────────────────┘</span>  <span class="box">└─────────────────┘</span>
+         <span class="arrow">│</span>
+         <span class="arrow">▼</span>
+<span class="box">┌─────────────────┐</span>
+<span class="box">│</span>   <span class="label">jmdict.py</span>     <span class="box">│</span>
+<span class="box">│</span>   Dictionary    <span class="box">│</span>
+<span class="box">│</span>   lookup()      <span class="box">│</span>
+<span class="box">└─────────────────┘</span>
+            </div>
+        </section>
+
+        <!-- Data Flow -->
+        <section id="data-flow">
+            <h2>Data Flow</h2>
+            <p>Here's how a request flows through the system:</p>
+
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Tokenization</h4>
+                        <p>SudachiPy breaks the input text into morphemes (smallest grammatical units).</p>
+                        <pre><code>"食べられなかった" → [食べ] [られ] [なかっ] [た]</code></pre>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Phrase Detection</h4>
+                        <p>Check if morphemes form a known grammar phrase from <code>COMPOUND_PHRASES</code>.</p>
+                        <pre><code>"かもしれない" → Detected as "might; may; possibly"</code></pre>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Morpheme Grouping</h4>
+                        <p>Group verbs with their conjugation auxiliaries into single compounds.</p>
+                        <pre><code>[食べ] [られ] [なかっ] [た] → [食べられなかった]</code></pre>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Dictionary Lookup</h4>
+                        <p>Look up the base form in JMDict for English meanings.</p>
+                        <pre><code>"食べる" → "to eat"</code></pre>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h4>Deconjugation</h4>
+                        <p>Analyze the conjugation chain to identify grammatical components.</p>
+                        <pre><code>"食べられなかった" → passive + negative + past</code></pre>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <h4>Response Building</h4>
+                        <p>Combine all information into a structured response.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Folder Structure -->
+        <section id="folder-structure">
+            <h2>Folder Structure</h2>
+
+            <div class="tree">
+<div class="tree-item"><span class="folder">src/</span></div>
+<div class="tree-item"><span class="indent">├── </span><span class="file">main.py</span><span class="comment"># FastAPI application & routes</span></div>
+<div class="tree-item"><span class="indent">├── </span><span class="file">models.py</span><span class="comment"># Pydantic request/response models</span></div>
+<div class="tree-item"><span class="indent">└── </span><span class="folder">services/</span></div>
+<div class="tree-item"><span class="indent">    ├── </span><span class="file">__init__.py</span><span class="comment"># Package exports</span></div>
+<div class="tree-item"><span class="indent">    ├── </span><span class="file">analyzer.py</span><span class="comment"># SudachiPy tokenizer wrapper</span></div>
+<div class="tree-item"><span class="indent">    ├── </span><span class="file">jmdict.py</span><span class="comment"># Dictionary lookup service</span></div>
+<div class="tree-item"><span class="indent">    ├── </span><span class="file">verb.py</span><span class="comment"># Verb conjugation rules</span></div>
+<div class="tree-item"><span class="indent">    ├── </span><span class="file">adjective.py</span><span class="comment"># Adjective conjugation rules</span></div>
+<div class="tree-item"><span class="indent">    └── </span><span class="file">conjugation.py</span><span class="comment"># Main orchestration</span></div>
+            </div>
+
+            <div class="module-grid">
+                <div class="module-card">
+                    <h4>📦 <code>analyzer.py</code></h4>
+                    <p>Wraps SudachiPy for Japanese tokenization. Singleton pattern for efficiency.</p>
+                </div>
+                <div class="module-card">
+                    <h4>📚 <code>jmdict.py</code></h4>
+                    <p>Fast dictionary lookups with in-memory indexing. Auto-downloads latest version.</p>
+                </div>
+                <div class="module-card">
+                    <h4>🔧 <code>verb.py</code></h4>
+                    <p>Verb conjugation/deconjugation rules. Handles godan, ichidan, and irregular verbs.</p>
+                </div>
+                <div class="module-card">
+                    <h4>🎨 <code>adjective.py</code></h4>
+                    <p>I-adjective and na-adjective conjugation rules.</p>
+                </div>
+                <div class="module-card">
+                    <h4>🎯 <code>conjugation.py</code></h4>
+                    <p>Main analysis logic. 150+ grammar patterns. Translation hints generation.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analyzer -->
+        <section id="analyzer">
+            <h2>analyzer.py<span class="tag tag-singleton">Singleton</span></h2>
+            <p>Wraps SudachiPy for Japanese text tokenization.</p>
+
+            <h3 id="analyzer-tokenization">Tokenization</h3>
+            <p>SudachiPy breaks Japanese text into morphemes with rich linguistic information:</p>
+
+            <pre><code><span class="keyword">from</span> sudachipy <span class="keyword">import</span> Dictionary, SplitMode
+
+tokenizer = Dictionary().create()
+morphemes = tokenizer.tokenize(<span class="string">"食べた"</span>, SplitMode.C)
+
+<span class="keyword">for</span> m <span class="keyword">in</span> morphemes:
+    <span class="function">print</span>(m.surface())        <span class="comment"># "食べ", "た"</span>
+    <span class="function">print</span>(m.dictionary_form()) <span class="comment"># "食べる", "た"</span>
+    <span class="function">print</span>(m.reading_form())    <span class="comment"># "タベ", "タ"</span>
+    <span class="function">print</span>(m.part_of_speech())  <span class="comment"># ("動詞", "一般", ...), ("助動詞", ...)</span></code></pre>
+
+            <h3 id="analyzer-splitmode">SplitMode Selection</h3>
+            <p>We use <code>SplitMode.C</code> (minimum splitting) to keep compound nouns together:</p>
+
+            <table>
+                <tr>
+                    <th>Mode</th>
+                    <th>Input</th>
+                    <th>Result</th>
+                    <th>Use Case</th>
+                </tr>
+                <tr>
+                    <td>A</td>
+                    <td>日本語</td>
+                    <td>日本 + 語</td>
+                    <td>Maximum detail</td>
+                </tr>
+                <tr>
+                    <td>B</td>
+                    <td>日本語</td>
+                    <td>日本語</td>
+                    <td>Balanced</td>
+                </tr>
+                <tr>
+                    <td>C ✓</td>
+                    <td>日本語</td>
+                    <td>日本語</td>
+                    <td>Vocabulary focus</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- JMDict -->
+        <section id="jmdict">
+            <h2>jmdict.py<span class="tag tag-singleton">Singleton</span></h2>
+            <p>Fast English meaning lookups using the jmdict-simplified JSON format.</p>
+
+            <h3 id="jmdict-indexing">Indexing Strategy</h3>
+            <p>At load time, we build two indexes for O(1) lookups:</p>
+
+            <pre><code><span class="keyword">class</span> <span class="class">JMDictionary</span>:
+    _index_kanji: <span class="class">dict</span>[<span class="class">str</span>, <span class="class">list</span>[<span class="class">dict</span>]]  <span class="comment"># "日本語" → [entry1, entry2, ...]</span>
+    _index_kana: <span class="class">dict</span>[<span class="class">str</span>, <span class="class">list</span>[<span class="class">dict</span>]]   <span class="comment"># "にほんご" → [entry1, ...]</span>
+
+<span class="comment"># Lookup priority:</span>
+<span class="comment"># 1. Try kanji index first (exact kanji match)</span>
+<span class="comment"># 2. Fall back to kana index (hiragana/katakana)</span></code></pre>
+
+            <h3 id="jmdict-download">Auto-Download</h3>
+            <p>If the dictionary isn't found locally, it's automatically downloaded from GitHub:</p>
+
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Search Local Paths</h4>
+                        <p><code>data/jmdict-eng.json</code>, <code>data/jmdict-eng.json.gz</code></p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Query GitHub API</h4>
+                        <p><code>api.github.com/repos/scriptin/jmdict-simplified/releases/latest</code></p>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Download & Extract</h4>
+                        <p>Downloads <code>jmdict-eng-X.X.X.json.gz</code> with progress indicator</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Verb -->
+        <section id="verb">
+            <h2>verb.py<span class="tag tag-enum">Enums</span></h2>
+            <p>Verb conjugation rules for godan (五段), ichidan (一段), and irregular verbs.</p>
+
+            <h3 id="verb-enums">Core Enums</h3>
+
+            <h4>Conjugation<span class="tag tag-enum">StrEnum</span></h4>
+            <p>Base conjugation forms:</p>
+            <table>
+                <tr>
+                    <th>Name</th>
+                    <th>Japanese</th>
+                    <th>Example (食べる)</th>
+                </tr>
+                <tr><td>NEGATIVE</td><td>否定形</td><td>食べない</td></tr>
+                <tr><td>DICTIONARY</td><td>辞書形</td><td>食べる</td></tr>
+                <tr><td>TA</td><td>過去形</td><td>食べた</td></tr>
+                <tr><td>TE</td><td>て形</td><td>食べて</td></tr>
+                <tr><td>CONDITIONAL</td><td>仮定形</td><td>食べれば</td></tr>
+                <tr><td>VOLITIONAL</td><td>意志形</td><td>食べよう</td></tr>
+                <tr><td>IMPERATIVE</td><td>命令形</td><td>食べろ</td></tr>
+                <tr><td>CONJUNCTIVE</td><td>連用形</td><td>食べ</td></tr>
+            </table>
+
+            <h4>Auxiliary<span class="tag tag-enum">StrEnum</span></h4>
+            <p>Auxiliary constructions that stack on verbs:</p>
+            <table>
+                <tr>
+                    <th>Name</th>
+                    <th>Pattern</th>
+                    <th>Meaning</th>
+                </tr>
+                <tr><td>POTENTIAL</td><td>れる/える</td><td>can do</td></tr>
+                <tr><td>MASU</td><td>ます</td><td>polite</td></tr>
+                <tr><td>NAI</td><td>ない</td><td>negative</td></tr>
+                <tr><td>TAI</td><td>たい</td><td>want to</td></tr>
+                <tr><td>TE_IRU</td><td>ている</td><td>progressive</td></tr>
+                <tr><td>SERU_SASERU</td><td>せる/させる</td><td>causative</td></tr>
+                <tr><td>RERU_RARERU</td><td>れる/られる</td><td>passive</td></tr>
+                <tr><td>SHIMAU</td><td>てしまう</td><td>completive</td></tr>
+                <tr><td>SUGIRU</td><td>すぎる</td><td>too much</td></tr>
+                <tr><td>YASUI</td><td>やすい</td><td>easy to</td></tr>
+            </table>
+
+            <h3 id="verb-rules">Sound Change Rules (Onbin 音便)</h3>
+            <p>For godan verbs, て/た forms have special sound changes:</p>
+
+            <table>
+                <tr>
+                    <th>Ending</th>
+                    <th>Te-form</th>
+                    <th>Ta-form</th>
+                    <th>Example</th>
+                </tr>
+                <tr><td>く</td><td>いて</td><td>いた</td><td>書く → 書いて</td></tr>
+                <tr><td>ぐ</td><td>いで</td><td>いだ</td><td>泳ぐ → 泳いで</td></tr>
+                <tr><td>す</td><td>して</td><td>した</td><td>話す → 話して</td></tr>
+                <tr><td>む/ぶ/ぬ</td><td>んで</td><td>んだ</td><td>読む → 読んで</td></tr>
+                <tr><td>つ/う/る</td><td>って</td><td>った</td><td>買う → 買って</td></tr>
+            </table>
+
+            <h3 id="verb-deconjugate">Deconjugation Algorithm</h3>
+            <p>The deconjugation works by reverse pattern matching:</p>
+
+            <div class="jp-example">
+                <span class="japanese">食べさせられた</span>
+                <span class="arrow">→</span>
+                <span class="result">食べる + [causative, passive, past]</span>
+            </div>
+
+            <pre><code><span class="keyword">def</span> <span class="function">deconjugate_verb</span>(surface, base, type2, max_aux_depth):
+    <span class="string">"""
+    Algorithm:
+    1. Try to match surface ending against known patterns
+    2. Peel off one auxiliary at a time
+    3. Recursively process remaining surface
+    4. Return chain of (auxiliaries, final_conjugation)
+    """</span>
+    
+    <span class="comment"># Example: 食べさせられた</span>
+    <span class="comment"># Step 1: Match た → past conjugation</span>
+    <span class="comment"># Step 2: Match られ → passive auxiliary</span>
+    <span class="comment"># Step 3: Match させ → causative auxiliary</span>
+    <span class="comment"># Step 4: 食べ = stem of 食べる ✓</span>
+    
+    <span class="keyword">return</span> DeconjugationResult(
+        auxiliaries=(SERU_SASERU, RERU_RARERU),
+        conjugation=Conjugation.TA,
+        stem=<span class="string">"食べ"</span>
+    )</code></pre>
+        </section>
+
+        <!-- Adjective -->
+        <section id="adjective">
+            <h2>adjective.py</h2>
+            <p>Handles i-adjective (形容詞) and na-adjective (形容動詞) conjugations.</p>
+
+            <h4>I-Adjective Rules</h4>
+            <p>Base form ends in い, which changes for conjugation:</p>
+            <table>
+                <tr>
+                    <th>Form</th>
+                    <th>Pattern</th>
+                    <th>Example (高い)</th>
+                </tr>
+                <tr><td>Negative</td><td>〜くない</td><td>高くない</td></tr>
+                <tr><td>Past</td><td>〜かった</td><td>高かった</td></tr>
+                <tr><td>Te-form</td><td>〜くて</td><td>高くて</td></tr>
+                <tr><td>Adverb</td><td>〜く</td><td>高く</td></tr>
+                <tr><td>Conditional</td><td>〜ければ</td><td>高ければ</td></tr>
+            </table>
+
+            <h4>Na-Adjective Rules</h4>
+            <p>Uses copula (だ/です) for conjugation:</p>
+            <table>
+                <tr>
+                    <th>Form</th>
+                    <th>Pattern</th>
+                    <th>Example (静か)</th>
+                </tr>
+                <tr><td>Plain</td><td>〜だ</td><td>静かだ</td></tr>
+                <tr><td>Polite</td><td>〜です</td><td>静かです</td></tr>
+                <tr><td>Negative</td><td>〜じゃない</td><td>静かじゃない</td></tr>
+                <tr><td>Past</td><td>〜だった</td><td>静かだった</td></tr>
+            </table>
+        </section>
+
+        <!-- Conjugation -->
+        <section id="conjugation">
+            <h2>conjugation.py<span class="tag tag-dict">150+ patterns</span></h2>
+            <p>The main orchestration module that ties everything together.</p>
+
+            <h3 id="conjugation-phrases">COMPOUND_PHRASES Dictionary</h3>
+            <p>Maps first token → list of (phrase, meaning) tuples for grammar pattern detection:</p>
+
+            <pre><code>COMPOUND_PHRASES = {
+    <span class="string">"か"</span>: [
+        (<span class="string">"かもしれない"</span>, <span class="string">"might; may; possibly"</span>),
+        (<span class="string">"かどうか"</span>, <span class="string">"whether or not"</span>),
+    ],
+    <span class="string">"な"</span>: [
+        (<span class="string">"なければならない"</span>, <span class="string">"must; have to"</span>),
+        (<span class="string">"なきゃいけない"</span>, <span class="string">"must; have to (casual)"</span>),
+        (<span class="string">"なくてはいけない"</span>, <span class="string">"must; have to"</span>),
+    ],
+    <span class="string">"て"</span>: [
+        (<span class="string">"てはいけない"</span>, <span class="string">"must not"</span>),
+        (<span class="string">"てもいい"</span>, <span class="string">"may; it's okay to"</span>),
+    ],
+    <span class="comment"># ... 150+ more patterns</span>
+}</code></pre>
+
+            <div class="callout callout-info">
+                <p><strong>Key Insight:</strong> The dictionary key must match exactly what SudachiPy produces as the first token. Use <code>/tokenize</code> to verify.</p>
+            </div>
+
+            <h3>GRAMMAR_MAP Dictionary</h3>
+            <p>Maps particles and auxiliaries to grammatical explanations:</p>
+
+            <pre><code>GRAMMAR_MAP = {
+    <span class="comment"># Particles</span>
+    <span class="string">"は"</span>: <span class="string">"topic marker"</span>,
+    <span class="string">"が"</span>: <span class="string">"subject marker"</span>,
+    <span class="string">"を"</span>: <span class="string">"object marker"</span>,
+    <span class="string">"に"</span>: <span class="string">"direction/time/target"</span>,
+    <span class="string">"で"</span>: <span class="string">"location/means"</span>,
+    <span class="string">"よ"</span>: <span class="string">"emphasis"</span>,
+    <span class="string">"ね"</span>: <span class="string">"confirmation"</span>,
+    <span class="comment"># ... more</span>
+}</code></pre>
+
+            <h3 id="conjugation-grouping">Morpheme Grouping Logic</h3>
+            <p>The algorithm groups verbs with their conjugation auxiliaries:</p>
+
+            <div class="jp-example">
+                <span class="japanese">食べられなかった</span>
+            </div>
+
+            <pre><code><span class="comment"># SudachiPy tokenization:</span>
+[食べ] [られ] [なかっ] [た]
+  動詞   助動詞   助動詞   助動詞
+
+<span class="comment"># Grouping rules:</span>
+<span class="comment"># 1. Start with 動詞 (verb)</span>
+<span class="comment"># 2. Attach: 助動詞 (auxiliary verbs)</span>
+<span class="comment"># 3. Attach: 接尾辞 (suffixes)</span>
+<span class="comment"># 4. Attach: 非自立可能 (dependent forms)</span>
+<span class="comment"># 5. Stop at: 助詞 (particles), 名詞 (nouns)</span>
+
+<span class="comment"># Result:</span>
+[食べられなかった] <span class="comment"># Single compound verb</span></code></pre>
+        </section>
+
+        <!-- Adding Grammar -->
+        <section id="adding-grammar">
+            <h2>Adding New Grammar Patterns</h2>
+            <p>Follow these steps to add a new grammar pattern:</p>
+
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Check Sudachi Tokenization</h4>
+                        <p>Use the <code>/tokenize</code> endpoint to see how Sudachi splits the phrase:</p>
+                        <pre><code>curl -X POST http://localhost:8000/tokenize \
+  -d '{"text": "ところだ"}'
+
+# Output:
+# ところ -> ところ [名詞-普通名詞]
+# だ -> だ [助動詞]</code></pre>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Add to COMPOUND_PHRASES</h4>
+                        <p>Use the first token as the key:</p>
+                        <pre><code>COMPOUND_PHRASES = {
+    <span class="comment"># Use "ところ" as key (first token)</span>
+    <span class="string">"ところ"</span>: [
+        (<span class="string">"ところだ"</span>, <span class="string">"about to; just did"</span>),
+        (<span class="string">"ところで"</span>, <span class="string">"by the way"</span>),
+    ],
+}</code></pre>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Add Fallback (Optional)</h4>
+                        <p>For verb patterns that deconjugation might miss:</p>
+                        <pre><code><span class="comment"># In analyze_full() and analyze_simple()</span>
+<span class="keyword">if</span> <span class="string">"ところだ"</span> <span class="keyword">in</span> compound_surface:
+    fallback_summary = <span class="string">"about to; just did"</span></code></pre>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Test</h4>
+                        <pre><code>curl -X POST http://localhost:8000/analyze_full \
+  -d '{"text": "食べたところだ"}'</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Translation Hints -->
+        <section id="translation-hints">
+            <h2>Translation Hints</h2>
+            <p>Generate natural English hints for conjugated forms.</p>
+
+            <h3>Irregular Past Tense</h3>
+            <p>English irregular verbs are handled with a lookup table:</p>
+
+            <pre><code>IRREGULAR_PAST_TENSE = {
+    <span class="string">"eat"</span>: <span class="string">"ate"</span>,      <span class="comment"># not "eated"</span>
+    <span class="string">"go"</span>: <span class="string">"went"</span>,      <span class="comment"># not "goed"</span>
+    <span class="string">"think"</span>: <span class="string">"thought"</span>, <span class="comment"># not "thinked"</span>
+    <span class="string">"buy"</span>: <span class="string">"bought"</span>,
+    <span class="string">"come"</span>: <span class="string">"came"</span>,
+    <span class="string">"see"</span>: <span class="string">"saw"</span>,
+    <span class="comment"># ... 50+ more</span>
+}</code></pre>
+
+            <h3>Hint Generation Pipeline</h3>
+            <pre><code><span class="keyword">def</span> <span class="function">generate_translation_hint</span>(meaning, auxiliaries, conjugation):
+    hint = extract_verb(meaning)  <span class="comment"># "to eat" → "eat"</span>
+    
+    <span class="comment"># Apply auxiliaries</span>
+    <span class="keyword">for</span> aux <span class="keyword">in</span> auxiliaries:
+        <span class="keyword">match</span> aux:
+            <span class="keyword">case</span> NAI:     hint = <span class="string">f"not </span>{hint}<span class="string">"</span>
+            <span class="keyword">case</span> TAI:     hint = <span class="string">f"want to </span>{hint}<span class="string">"</span>
+            <span class="keyword">case</span> TE_IRU: hint = <span class="string">f"is </span>{hint}<span class="string">ing"</span>
+    
+    <span class="comment"># Apply conjugation</span>
+    <span class="keyword">match</span> conjugation:
+        <span class="keyword">case</span> TA:   hint = make_past_tense(hint)  <span class="comment"># "ate"</span>
+        <span class="keyword">case</span> TE:   hint = <span class="string">f"</span>{hint}<span class="string"> and..."</span>
+    
+    <span class="keyword">return</span> hint</code></pre>
+
+            <div class="jp-example">
+                <span class="japanese">食べられなかった</span>
+                <span class="arrow">→</span>
+                <span class="result">"couldn't eat"</span>
+            </div>
+        </section>
+
+        <!-- Troubleshooting -->
+        <section id="troubleshooting">
+            <h2>Troubleshooting</h2>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">❌</span>
+                    <h4>Grammar pattern not detected</h4>
+                </div>
+                <p><strong>Cause:</strong> First token doesn't match COMPOUND_PHRASES key.</p>
+                <p><strong>Solution:</strong> Check Sudachi tokenization:</p>
+                <pre><code>curl -X POST /tokenize -d '{"text": "かもしれない"}'
+# Output: か | も | しれ | ない
+# Use "か" as key, not "かも"</code></pre>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">❌</span>
+                    <h4>Wrong meaning shown</h4>
+                </div>
+                <p><strong>Cause:</strong> JMDict entry order or uncommon meaning first.</p>
+                <p><strong>Solution:</strong> Consider adding meaning overrides:</p>
+                <pre><code>MEANING_OVERRIDES = {
+    <span class="string">"本"</span>: <span class="string">"book"</span>,  <span class="comment"># not "origin"</span>
+    <span class="string">"こと"</span>: <span class="string">"thing; matter"</span>,  <span class="comment"># not "koto (zither)"</span>
+}</code></pre>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">❌</span>
+                    <h4>Conjugation not recognized</h4>
+                </div>
+                <p><strong>Cause:</strong> Pattern not in verb.py rules.</p>
+                <p><strong>Solution:</strong></p>
+                <ol>
+                    <li>Check if pattern exists in verb.py rules</li>
+                    <li>Add fallback pattern detection in conjugation.py</li>
+                    <li>Verify morpheme boundaries match expectations</li>
+                </ol>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">❌</span>
+                    <h4>Dictionary not loading</h4>
+                </div>
+                <p><strong>Cause:</strong> JMDict file not found.</p>
+                <p><strong>Solution:</strong> The system auto-downloads, but manual download:</p>
+                <pre><code>curl -L https://github.com/scriptin/jmdict-simplified/releases/latest/download/jmdict-eng-3.6.1.json.gz \
+  -o data/jmdict-eng.json.gz</code></pre>
+            </div>
+        </section>
+
+        <footer style="margin-top: 4rem; padding: 2rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted);">
+            <p>Yomisub API Developer Documentation • Built for Japanese NLP enthusiasts</p>
+        </footer>
+    </main>
+
+    <script>
+        // Highlight active nav link
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+                if (href === `#${current}`) {
+                    link.style.background = 'rgba(99, 102, 241, 0.15)';
+                    link.style.color = '#6366f1';
+                    link.style.borderLeftColor = '#6366f1';
+                } else {
+                    link.style.background = '';
+                    link.style.color = '';
+                    link.style.borderLeftColor = '';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
