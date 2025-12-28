@@ -2,6 +2,7 @@
 
 import jaconv
 from sudachipy import SplitMode
+from lemminflect import getInflection
 
 from services.analyzer import JapaneseAnalyzer
 from services.verb import (
@@ -94,26 +95,7 @@ CONJUGATION_DESCRIPTIONS: dict[str, tuple[str, str]] = {
     "NU": ("classical-negative", "not"),
 }
 
-# Irregular English past tense forms for better translation hints
-IRREGULAR_PAST_TENSE = {
-    "eat": "ate", "read": "read", "buy": "bought", "go": "went",
-    "come": "came", "do": "did", "say": "said", "think": "thought",
-    "see": "saw", "take": "took", "give": "gave", "make": "made",
-    "get": "got", "know": "knew", "find": "found", "put": "put",
-    "tell": "told", "become": "became", "begin": "began", "bring": "brought",
-    "build": "built", "catch": "caught", "choose": "chose", "draw": "drew",
-    "drink": "drank", "drive": "drove", "fall": "fell", "feel": "felt",
-    "fight": "fought", "fly": "flew", "forget": "forgot", "grow": "grew",
-    "have": "had", "hear": "heard", "hold": "held", "keep": "kept",
-    "leave": "left", "let": "let", "lose": "lost", "meet": "met",
-    "pay": "paid", "run": "ran", "sell": "sold", "send": "sent",
-    "sit": "sat", "sleep": "slept", "speak": "spoke", "spend": "spent",
-    "stand": "stood", "swim": "swam", "teach": "taught", "throw": "threw",
-    "understand": "understood", "wake": "woke", "wear": "wore", "win": "won",
-    "write": "wrote", "break": "broke", "cut": "cut", "hit": "hit",
-    "hurt": "hurt", "set": "set", "shut": "shut", "spread": "spread",
-    "be": "was", "is": "was", "are": "were", "can": "could",
-}
+# Past tense is now handled by lemminflect library (see make_past_tense function)
 
 # Grammar explanations for particles, auxiliaries, pronouns
 GRAMMAR_MAP = {
@@ -734,36 +716,48 @@ def is_hiragana(char: str) -> bool:
 
 
 def make_past_tense(verb: str) -> str:
-    """Convert English verb to past tense with irregular form handling."""
+    """
+    Convert English verb to past tense using lemminflect library.
+    
+    Uses Penn Treebank tag 'VBD' for simple past tense.
+    Falls back to simple -ed rule if lemminflect fails.
+    """
     verb = verb.lower().strip()
     
-    # Check for irregular verbs
-    if verb in IRREGULAR_PAST_TENSE:
-        return IRREGULAR_PAST_TENSE[verb]
-    
-    # Extract first word for verb phrases like "to eat"
+    # Handle verb phrases like "to eat" or "not eat"
     if verb.startswith("to "):
         base = verb[3:].split()[0] if verb[3:] else verb
-        if base in IRREGULAR_PAST_TENSE:
-            return IRREGULAR_PAST_TENSE[base]
-        return make_regular_past(base)
+        return _inflect_past(base)
     
-    # Try just the first word
+    if verb.startswith("not "):
+        base = verb[4:].split()[0] if verb[4:] else verb
+        return f"didn't {base}"
+    
+    # Extract first word (the main verb)
     first_word = verb.split()[0]
-    if first_word in IRREGULAR_PAST_TENSE:
-        return IRREGULAR_PAST_TENSE[first_word]
+    return _inflect_past(first_word)
+
+
+def _inflect_past(verb: str) -> str:
+    """Use lemminflect to get past tense form."""
+    try:
+        # VBD = past tense verb in Penn Treebank tags
+        result = getInflection(verb, tag='VBD')
+        if result:
+            return result[0]
+    except Exception:
+        pass
     
-    return make_regular_past(first_word)
+    # Fallback to simple rules if lemminflect fails
+    return _make_regular_past(verb)
 
 
-def make_regular_past(verb: str) -> str:
-    """Apply regular past tense rules."""
+def _make_regular_past(verb: str) -> str:
+    """Fallback: apply regular past tense rules."""
     if verb.endswith("e"):
         return verb + "d"
     elif verb.endswith("y") and len(verb) > 1 and verb[-2] not in "aeiou":
         return verb[:-1] + "ied"
-    elif len(verb) > 2 and verb[-1] in "bdfgklmnprstwz" and verb[-2] in "aeiou" and verb[-3] not in "aeiou":
-        return verb + verb[-1] + "ed"
     else:
         return verb + "ed"
 

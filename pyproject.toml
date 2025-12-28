@@ -15,6 +15,7 @@ dependencies = [
     "httpx>=0.28.0",
     "pydantic>=2.10.0",
     "jaconv>=0.4.1",
+    "lemminflect>=0.2.3",
 ]
 
 [project.optional-dependencies]
