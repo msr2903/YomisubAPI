@@ -19,6 +19,7 @@ class TokenInfo:
     reading: str
     pos: str
     meaning: str | None = None
+    components: list["TokenInfo"] | None = None  # Parts of a conjugated token
 
     def to_dict(self) -> dict[str, str | None]:
         """Convert to dictionary for JSON serialization."""
@@ -176,52 +177,168 @@ class JapaneseAnalyzer:
         Returns:
             List of TokenInfo objects with surface, base, reading, POS, and meaning.
         """
-        if not text or not text.strip():
-            return []
-
         tokens: list[TokenInfo] = []
-        seen_bases: set[str] = set()  # Avoid duplicate base forms
+        seen_bases: set[str] = set()
+        
+        # Buffer to hold morphemes for the current group
+        group_buffer: list[Morpheme] = []
+        
+        def flush_buffer():
+            if not group_buffer:
+                return
 
-        for morpheme in self._tokenizer.tokenize(text, split_mode):
-            # Get the main POS category
-            pos_parts = morpheme.part_of_speech()
-            main_pos = pos_parts[0] if pos_parts else ""
-
-            # Skip punctuation and symbols only
-            if main_pos in self.SKIP_POS:
-                continue
-
-            surface = morpheme.surface()
-            base_form = morpheme.dictionary_form()
+            # Analyze the group
+            head = group_buffer[0]
+            tail = group_buffer[1:]
             
-            # Convert Katakana reading to Hiragana
-            reading_kata = morpheme.reading_form()
-            reading = jaconv.kata2hira(reading_kata)
+            # Helper to create TokenInfo from a morpheme
+            def make_token(m: Morpheme) -> TokenInfo:
+                s = m.surface()
+                b = m.dictionary_form()
+                r_kata = m.reading_form()
+                r = jaconv.kata2hira(r_kata)
+                p = self._extract_pos(m)
+                mn = self._lookup_meaning(b, s)
+                if not mn and self._is_katakana(s):
+                    mn = None # Ensure consistent logic for cleanup
+                return TokenInfo(s, b, r, p, mn)
 
-            # Skip if we've already seen this base form
-            if base_form in seen_bases:
-                continue
-            seen_bases.add(base_form)
+            head_token = make_token(head)
+            
+            # If it's a single token, just emit it (unless it was filtered proper noun)
+            if not tail:
+                # Proper noun filter check 
+                # (Note: Original logic was: if not meaning and is_katakana: continue)
+                # We replicate that here.
+                if not head_token.meaning and self._is_katakana(head_token.surface):
+                    group_buffer.clear()
+                    return
 
-            # Get the part of speech string (mapped to English)
-            pos = self._extract_pos(morpheme)
-
-            # Look up meaning (includes grammar explanations)
-            meaning = self._lookup_meaning(base_form, surface)
-
-            # Skip untranslated katakana words (likely proper nouns/names)
-            if not meaning and self._is_katakana(surface):
-                continue
-
-            tokens.append(
-                TokenInfo(
-                    surface=surface,
-                    base_form=base_form,
-                    reading=reading,
-                    pos=pos,
-                    meaning=meaning,
+                # Deduplication logic (original used seen_bases)
+                # We apply dedupe on the HEAD's base form for the main list
+                if head_token.base_form not in seen_bases:
+                    seen_bases.add(head_token.base_form)
+                    tokens.append(head_token)
+            else:
+                # It is a group!
+                # 1. Create the Surface Form (concatenated)
+                full_surface = "".join(m.surface() for m in group_buffer)
+                
+                # 2. Components
+                component_tokens = [make_token(m) for m in group_buffer]
+                
+                # 3. Create the compound token
+                # Base form is the HEAD's base form.
+                # POS is the HEAD's POS (usually Verb).
+                # Meaning is HEAD's meaning.
+                # We add 'components' list.
+                
+                compound_token = TokenInfo(
+                    surface=full_surface,
+                    base_form=head_token.base_form,
+                    reading="".join(c.reading for c in component_tokens), # Concatenate readings
+                    pos=head_token.pos,
+                    meaning=head_token.meaning,
+                    components=component_tokens
                 )
+                
+                # Deduplicate based on HEAD base form
+                if head_token.base_form not in seen_bases:
+                    seen_bases.add(head_token.base_form)
+                    tokens.append(compound_token)
+            
+            group_buffer.clear()
+
+        # Iterate and Group
+        raw_morphemes = self._tokenizer.tokenize(text, split_mode)
+        
+        for morpheme in raw_morphemes:
+            pos_tuple = morpheme.part_of_speech()
+            main_pos = pos_tuple[0]
+            sub_pos1 = pos_tuple[1]
+            
+            # Skip punctuation/symbols globally?
+            # Original: if main_pos in self.SKIP_POS: continue
+            # If inside a group, we probably shouldn't skip?
+            # Actually punctuation breaks a group usually.
+            if main_pos in self.SKIP_POS:
+                flush_buffer()
+                continue
+
+            # Determine if this morpheme can extend the current group
+            # Conditions to be a TAIL:
+            # 1. Auxiliary (助動詞)
+            # 2. Suffix (接尾辞)
+            # 3. Non-independent Verb/Adj (非自立可能) 
+            #    e.g. ている (いる), ておく (おく), てほしい (ほしい)
+            # 4. Conjunctive Particle (接続助詞) - e.g. て, ば, 
+            #    But be careful: "から" (cause/from) is also 接続助詞 sometimes? 
+            #    Yes: 食べたから (because I ate).
+            #    Do we want "Eat because"? Maybe not.
+            #    Strict conjugation usually includes て (Te), ば (Ba), たら (Tara), たり (Tari).
+            #    Let's limit particles to safely connective ones if possible.
+            #    Sudachi labels: 接続助詞.
+            
+            is_tail_candidate = (
+                main_pos in {"助動詞", "接尾辞"} or
+                sub_pos1 == "非自立可能" or
+                (main_pos == "助詞" and sub_pos1 == "接続助詞")
             )
+            
+            # However, a group must START with a Predicate (Verb/Adj/Na-Adj).
+            # If buffer is empty, this must be a Head.
+            
+            if not group_buffer:
+                # Starting a new potential group
+                # Must be Verb/Adj/Na-Adj (and NOT Non-independent if we want to be strict heads)
+                # But sometimes a sentence starts with non-independent? Unlikely for "Base Meaning".
+                # Let's accept any non-symbol as head, but we only GROUP if head is Predicate.
+                group_buffer.append(morpheme)
+            else:
+                # Buffer has content. Can we attach?
+                # We only attach if the HEAD (group_buffer[0]) is a Predicate (Verb/Adj/Shape).
+                # And the current is a valid Tail.
+                
+                head_pos = group_buffer[0].part_of_speech()
+                head_main = head_pos[0]
+                
+                is_predicate_head = head_main in {"動詞", "形容詞", "形状詞"}
+                
+                # Refine Tail Logic:
+                # Don't attach "Specific Particles" like "から" (because)?
+                # "て" is surface "て" (or "で").
+                # "ば" is surface "ば".
+                # "たり" is surface "たり".
+                # "ながら" (while) -> Eat-while? Maybe group.
+                # "つつ" (while) -> Group.
+                # "けど" (but) -> Eat-but? No.
+                # "ので" (so) -> Eat-so? No.
+                
+                attach = False
+                if is_predicate_head and is_tail_candidate:
+                    # Filter specific particles if needed
+                    if main_pos == "助詞":
+                        # Allow: て, で, ば, たり, だら (tara?), ながら, つつ
+                        # Disallow: から, けれど, のに, ので, し
+                        # Simple whitelist of surfaces?
+                        s = morpheme.surface()
+                        if s in {"て", "で", "ば", "たり", "だら", "たら", "なら", "ながら", "つつ"}: 
+                            attach = True
+                        else:
+                            attach = False
+                    else:
+                        attach = True # Aux, Suffix, Non-Indep are always attached
+                
+                if attach:
+                    group_buffer.append(morpheme)
+                else:
+                    # Cannot attach to current group.
+                    flush_buffer()
+                    # Start new group with current
+                    group_buffer.append(morpheme)
+        
+        # Flush remaining
+        flush_buffer()
 
         return tokens
 

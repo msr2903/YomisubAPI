@@ -1,155 +1,157 @@
----
-title: YomisubAPI
-emoji: 📚
-colorFrom: red
-colorTo: indigo
-sdk: docker
-pinned: false
-short_description: Japanese text analysis API for language learning
----
+# Yomisub API
 
-# Yomisub API 📚
-
-A Japanese text analysis API for language learning. Built with FastAPI, SudachiPy, and JMDict.
+A comprehensive Japanese text analysis API with advanced conjugation support, powered by SudachiPy and JMDict.
 
 ## Features
 
-- 🔤 **Tokenization** — Break down Japanese text into words using SudachiPy (full dictionary)
-- 📖 **Dictionary Lookup** — English meanings via JMDict (214k+ entries)
-- 🗣️ **Readings** — Hiragana readings for all words
-- 📑 **Grammar Support** — Explanations for particles, auxiliaries, and pronouns
-- ⚡ **Fast** — In-memory dictionary with O(1) lookups
-- 🚫 **Name Filtering** — Automatically skips untranslated katakana (names)
-- 📱 **iOS Support** — Analyze text directly from your iPhone or iPad with Netflix, Apple TV, or any other streaming app with subtitles
+- 🔍 **Smart Tokenization** - Uses SudachiPy with SplitMode.C to keep compound nouns together
+- 📚 **Dictionary Lookup** - JMDict-powered meanings (214k+ entries) with O(1) lookups
+- 🧩 **Conjugation Analysis** - Deconjugate verbs and adjectives with detailed breakdowns
+- 🎯 **30+ Auxiliary Constructions** - Potential, passive, causative, benefactive, and more
+- 📝 **150+ Grammar Patterns** - Common JLPT N5-N2 grammar phrases detected automatically
+- 📑 **Grammar Support** - Explanations for particles, auxiliaries, and pronouns
+- 🚫 **Name Filtering** - Automatically skips untranslated katakana (names)
+- 📱 **iOS Support** - Analyze text directly from your iPhone or iPad with Netflix, Apple TV, or any other streaming app
 
-## iOS Shortcut (Netflix, Apple TV, etc. )
+## iOS Shortcut (Netflix, Apple TV, etc.)
 
-You can use Yomisub API directly on your iOS device with streaming app using this Apple Shortcut:
+You can use Yomisub API directly on your iOS device with streaming apps using this Apple Shortcut:
 
 👉 **[Install Yomisub iOS Shortcut](https://www.icloud.com/shortcuts/520d8ae630684ad99b7a495e306cc64a)**
 
-This shortcut allows you to send subtitles from any streaming app with subtitles to your hosted API (the default is my huggingface API) and receive the notifications in seconds.
-Just set a trigger to the shortcut (Back tap, Action button, etc. ) after found a subtitle you want to analyze, then the notification will be sent. 
+This shortcut allows you to send subtitles from any streaming app to your hosted API (the default is my Hugging Face API) and receive notifications in seconds.
 
 Example in Netflix:
 <img width="1218" height="563" alt="IMG_4481" src="https://github.com/user-attachments/assets/ebbc952f-9b72-45a3-9b9c-ed050dcbc295" />
 
+## Quick Start
 
-## Quick Start to Host your own API
+### Installation
 
-### 1. Install Dependencies
 ```bash
+# Clone the repository
+git clone https://github.com/msr2903/YomisubAPI
+cd YomisubAPI
+
+# Install dependencies with uv
 uv sync
+
+# Run the server
+uv run uvicorn src.main:app --reload
 ```
 
-### 2. Download JMDict Dictionary
+### API Endpoints
+
+| Endpoint | Purpose | Use Case |
+|----------|---------|----------|
+| `POST /analyze` | Structured token analysis | Apps with custom UI |
+| `POST /analyze_simple` | Vocabulary-focused | Study/flashcard apps |
+| `POST /analyze_full` | Complete grammar breakdown | Grammar study |
+| `POST /deconjugate` | Verb/adjective analysis | Conjugation learning |
+| `POST /conjugate` | Generate conjugations | Reference tool |
+| `POST /tokenize` | Raw tokenization | Debugging |
+
+## Example Usage
+
+### Analyze Text (Simple)
+
 ```bash
-make update-dict
-# or manually:
-./scripts/update_jmdict.sh
+curl -X POST http://localhost:8000/analyze_simple \
+  -H "Content-Type: application/json" \
+  -d '{"text": "日本語を勉強しなければならない"}'
 ```
 
-### 3. Run Development Server
-```bash
-make dev
-```
-
-API available at `http://localhost:8000`
-- Swagger UI: `http://localhost:8000/docs`
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/analyze` | Full JSON with tokens, readings, POS, meanings |
-| `POST` | `/analyze_simple` | Clean text output (vocabulary only, filtered) |
-| `POST` | `/analyze_full` | All tokens including grammar words |
-| `POST` | `/tokenize` | Raw SudachiPy tokenization (for debugging) |
-| `GET` | `/health` | Health check |
-
-### Example Request
-```bash
-curl -X POST "http://localhost:8000/analyze_simple" \
-     -H "Content-Type: application/json" \
-     -d '{"text": "日本語を勉強しています"}'
-```
-
-### Example Response
+**Response:**
 ```json
 {
-  "result": "日本語 (にほんご) = Japanese (language)\n勉強 (べんきょう) = study"
+  "vocabulary": [
+    {"word": "日本語", "base": "日本語", "reading": "にほんご", "meaning": "Japanese (language)"},
+    {"word": "勉強", "base": "勉強", "reading": "べんきょう", "meaning": "study"},
+    {"word": "しなければならない", "base": "する", "reading": "する", "meaning": "to do", "conjugation_hint": "must; have to"}
+  ],
+  "count": 3
 }
 ```
 
-## Docker
+### Deconjugate Verb
 
-### Build & Run
 ```bash
-docker build -t yomisub .
-docker run -p 8000:8000 yomisub
+curl -X POST http://localhost:8000/deconjugate \
+  -H "Content-Type: application/json" \
+  -d '{"word": "食べられなかった", "type": "ichidan"}'
 ```
 
-### With Docker Compose (optional)
-```yaml
-services:
-  api:
-    build: .
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./data:/app/data
+**Response:**
+```json
+{
+  "word": "食べられなかった",
+  "base": "食べる",
+  "conjugation": {
+    "chain": [
+      {"type": "RERU_RARERU", "english": "passive/potential"},
+      {"type": "NAI", "english": "negative"},
+      {"type": "TA", "english": "past"}
+    ],
+    "summary": "passive/potential + negative + past",
+    "translation_hint": "couldn't eat"
+  }
+}
 ```
+
+## Supported Conjugations
+
+### Verb Auxiliaries
+
+| Category | Auxiliaries |
+|----------|-------------|
+| **Potential/Passive** | れる/られる, せる/させる, causative-passive |
+| **Desire** | たい, たがる, ほしい |
+| **Aspect** | ている, てある, てみる, ておく, てしまう |
+| **Direction** | ていく, てくる |
+| **Benefactive** | てあげる, てもらう, てくれる |
+| **Degree** | すぎる, やすい, にくい |
+| **Compound** | かける, きる, こむ, だす, なおす |
+
+### Grammar Patterns Detected
+
+| Category | Examples |
+|----------|----------|
+| **Obligation** | なければならない, ないといけない, なきゃいけない |
+| **Permission** | てもいい, てはいけない |
+| **Conjecture** | かもしれない, はずだ, だろう |
+| **Appearance** | らしい, みたいだ, ようだ, っぽい |
+| **Purpose** | ために, ように |
+| **Extent** | ほど, だけ, ばかり |
+| **Time** | うちに, たびに, ところだ |
 
 ## Project Structure
 
 ```
 YomisubAPI/
-├── pyproject.toml          # Dependencies (uv)
-├── Makefile                 # Dev commands
-├── Dockerfile               # Production build
+├── src/
+│   ├── main.py              # FastAPI routes
+│   ├── models.py            # Pydantic models
+│   └── services/
+│       ├── analyzer.py      # Japanese analyzer
+│       ├── conjugation.py   # Conjugation logic
+│       ├── verb.py          # Verb conjugation rules
+│       ├── adjective.py     # Adjective conjugation
+│       └── jmdict.py        # Dictionary lookup
 ├── data/
-│   └── jmdict-eng.json      # JMDict dictionary (110MB)
-├── scripts/
-│   └── update_jmdict.sh     # Dictionary updater
-└── src/
-    ├── main.py              # FastAPI app
-    └── services/
-        ├── analyzer.py      # SudachiPy tokenization + grammar
-        └── jmdict.py        # JMDict lookup service
+│   └── jmdict-eng-3.5.0.json
+├── docs/
+│   └── index.html           # API Documentation
+└── pyproject.toml
 ```
 
-## Updating the Dictionary
+## Documentation
 
-JMDict is updated monthly. To get the latest:
+See [`docs/index.html`](docs/index.html) for detailed API documentation with interactive examples.
 
-```bash
-make update-dict
-```
+## Live API
 
-Or set up a cron job:
-```bash
-# Monthly update (1st of each month at midnight)
-0 0 1 * * cd /path/to/project && ./scripts/update_jmdict.sh
-```
-
-## Tech Stack
-
-- **Framework:** FastAPI
-- **Tokenizer:** SudachiPy (with sudachidict-full)
-- **Dictionary:** JMDict via jmdict-simplified
-- **Package Manager:** uv (by Astral)
-- **Python:** 3.12+
-
-## Deployment
-
-Optimized for free cloud services:
-
-| Service | Command |
-|---------|---------|
-| Railway | `railway up` |
-| Fly.io | `fly launch` |
-| Render | Connect GitHub repo |
+🚀 **[Try the API on Hugging Face](https://huggingface.co/spaces/msr2903/YomisubAPI)**
 
 ## License
 
-MIT
+MIT License

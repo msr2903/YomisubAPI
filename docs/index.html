@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yomisub API Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --accent-primary: #e94560;
+            --accent-secondary: #0f3460;
+            --accent-gradient: linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666;
+            --border-color: #2a2a4a;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --info: #60a5fa;
+            --code-bg: #1e1e3f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem 0;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .nav-header {
+            padding: 0 1.5rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+
+        .nav-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-header p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-section-title {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            padding: 0 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.5rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: rgba(233, 69, 96, 0.1);
+            color: var(--accent-primary);
+            border-left-color: var(--accent-primary);
+        }
+
+        .nav-link.active {
+            background: rgba(233, 69, 96, 0.15);
+            color: var(--accent-primary);
+            border-left-color: var(--accent-primary);
+        }
+
+        .method-badge {
+            display: inline-block;
+            font-size: 0.6rem;
+            font-weight: 600;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            margin-right: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .method-post { background: var(--success); color: #000; }
+        .method-get { background: var(--info); color: #000; }
+
+        /* Main Content */
+        main {
+            margin-left: 280px;
+            padding: 3rem 4rem;
+            max-width: 1000px;
+        }
+
+        section {
+            margin-bottom: 4rem;
+            padding-top: 2rem;
+        }
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 2rem 0 1rem;
+            color: var(--accent-primary);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--text-primary);
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: var(--accent-gradient);
+            padding: 3rem;
+            border-radius: 16px;
+            margin-bottom: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '読';
+            position: absolute;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 8rem;
+            opacity: 0.1;
+            font-weight: 700;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero p {
+            color: rgba(255,255,255,0.8);
+            font-size: 1.1rem;
+            max-width: 600px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .endpoint-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            background: var(--code-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            color: var(--info);
+        }
+
+        /* Code Blocks */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--code-bg);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: var(--accent-primary);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: var(--text-primary);
+        }
+
+        .code-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        tr:hover td {
+            background: rgba(233, 69, 96, 0.05);
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h4 {
+            margin: 0 0 0.5rem;
+            font-size: 1rem;
+        }
+
+        .feature-card p {
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            margin: 0.2rem;
+        }
+
+        .tag-blue { background: rgba(96, 165, 250, 0.2); color: var(--info); }
+        .tag-green { background: rgba(74, 222, 128, 0.2); color: var(--success); }
+        .tag-yellow { background: rgba(251, 191, 36, 0.2); color: var(--warning); }
+        .tag-red { background: rgba(233, 69, 96, 0.2); color: var(--accent-primary); }
+
+        /* Response Example */
+        .response-example {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .response-example .key {
+            color: var(--info);
+        }
+
+        .response-example .string {
+            color: var(--success);
+        }
+
+        .response-example .number {
+            color: var(--warning);
+        }
+
+        /* Grammar Table */
+        .grammar-category {
+            margin: 2rem 0;
+        }
+
+        .grammar-category h4 {
+            background: var(--bg-tertiary);
+            padding: 0.75rem 1rem;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 0;
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+        }
+
+        .grammar-list {
+            border: 1px solid var(--border-color);
+            border-radius: 0 0 8px 8px;
+            padding: 1rem;
+            background: var(--bg-secondary);
+        }
+
+        .grammar-item {
+            display: inline-block;
+            margin: 0.25rem;
+            padding: 0.4rem 0.8rem;
+            background: var(--code-bg);
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            nav {
+                transform: translateX(-100%);
+            }
+            main {
+                margin-left: 0;
+                padding: 2rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        section {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Japanese text styling */
+        .jp {
+            font-size: 1.1em;
+            color: var(--text-primary);
+        }
+
+        .reading {
+            color: var(--text-muted);
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-header">
+            <h1>Yomisub API</h1>
+            <p>Japanese Text Analysis</p>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Getting Started</div>
+            <a href="#overview" class="nav-link">Overview</a>
+            <a href="#installation" class="nav-link">Installation</a>
+            <a href="#quickstart" class="nav-link">Quick Start</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">API Endpoints</div>
+            <a href="#analyze" class="nav-link"><span class="method-badge method-post">POST</span>/analyze</a>
+            <a href="#analyze-simple" class="nav-link"><span class="method-badge method-post">POST</span>/analyze_simple</a>
+            <a href="#analyze-full" class="nav-link"><span class="method-badge method-post">POST</span>/analyze_full</a>
+            <a href="#deconjugate" class="nav-link"><span class="method-badge method-post">POST</span>/deconjugate</a>
+            <a href="#conjugate" class="nav-link"><span class="method-badge method-post">POST</span>/conjugate</a>
+            <a href="#tokenize" class="nav-link"><span class="method-badge method-post">POST</span>/tokenize</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Reference</div>
+            <a href="#conjugations" class="nav-link">Conjugation Types</a>
+            <a href="#auxiliaries" class="nav-link">Auxiliaries</a>
+            <a href="#grammar-patterns" class="nav-link">Grammar Patterns</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Examples</div>
+            <a href="#examples" class="nav-link">Code Examples</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <div class="hero">
+            <h1>Yomisub API</h1>
+            <p>A powerful Japanese text analysis API with comprehensive conjugation support, grammar pattern detection, and dictionary lookup.</p>
+        </div>
+
+        <!-- Overview -->
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>Yomisub API provides intelligent Japanese text analysis with deep understanding of verb and adjective conjugations, making it perfect for language learning applications, reading assistants, and linguistic research tools.</p>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h4>Smart Tokenization</h4>
+                    <p>Uses SudachiPy with SplitMode.C to keep compound nouns together like 日本語, 勉強.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📚</div>
+                    <h4>Dictionary Lookup</h4>
+                    <p>JMDict-powered meanings with proper POS filtering for accurate definitions.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧩</div>
+                    <h4>Deep Conjugation</h4>
+                    <p>Analyzes multi-layer conjugations like 食べられなかった → passive + negative + past.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <h4>Grammar Detection</h4>
+                    <p>100+ JLPT N5-N2 grammar patterns detected automatically.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Installation -->
+        <section id="installation">
+            <h2>Installation</h2>
+
+            <h4>Prerequisites</h4>
+            <ul>
+                <li>Python 3.11+</li>
+                <li>UV package manager (recommended) or pip</li>
+            </ul>
+
+            <h4>Setup</h4>
+            <div class="code-label">Terminal</div>
+            <pre><code># Clone the repository
+git clone https://github.com/yourusername/YomisubAPI
+cd YomisubAPI
+
+# Install dependencies with uv
+uv sync
+
+# Run the server
+uv run uvicorn src.main:app --reload --port 8000</code></pre>
+
+            <p>The API will be available at <code>http://localhost:8000</code></p>
+        </section>
+
+        <!-- Quick Start -->
+        <section id="quickstart">
+            <h2>Quick Start</h2>
+
+            <div class="code-label">cURL Example</div>
+            <pre><code>curl -X POST http://localhost:8000/analyze_simple \
+  -H "Content-Type: application/json" \
+  -d '{"text": "日本語を勉強しています"}'</code></pre>
+
+            <div class="code-label">Response</div>
+            <pre><code>{
+  "vocabulary": [
+    {
+      "word": "日本語",
+      "base": "日本語",
+      "reading": "にほんご",
+      "meaning": "Japanese (language)",
+      "conjugation_hint": null
+    },
+    {
+      "word": "勉強",
+      "base": "勉強",
+      "reading": "べんきょう",
+      "meaning": "study",
+      "conjugation_hint": null
+    },
+    {
+      "word": "しています",
+      "base": "する",
+      "reading": "する",
+      "meaning": "to do",
+      "conjugation_hint": "progressive/resultative (is doing)"
+    }
+  ],
+  "count": 3
+}</code></pre>
+        </section>
+
+        <!-- /analyze -->
+        <section id="analyze">
+            <h2><span class="method-badge method-post">POST</span> /analyze</h2>
+            <p>Structured token analysis with conjugation breakdown and component details. Best for building custom user interfaces.</p>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="endpoint-badge">POST /analyze</span>
+                </div>
+
+                <h4>Request Body</h4>
+                <table>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td><code>text</code></td>
+                        <td>string</td>
+                        <td>Yes</td>
+                        <td>Japanese text to analyze</td>
+                    </tr>
+                </table>
+
+                <h4>Response Fields</h4>
+                <table>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td><code>tokens</code></td>
+                        <td>array</td>
+                        <td>List of analyzed tokens</td>
+                    </tr>
+                    <tr>
+                        <td><code>tokens[].surface</code></td>
+                        <td>string</td>
+                        <td>Surface form as it appears in text</td>
+                    </tr>
+                    <tr>
+                        <td><code>tokens[].base</code></td>
+                        <td>string</td>
+                        <td>Dictionary form</td>
+                    </tr>
+                    <tr>
+                        <td><code>tokens[].reading</code></td>
+                        <td>string</td>
+                        <td>Hiragana reading</td>
+                    </tr>
+                    <tr>
+                        <td><code>tokens[].pos</code></td>
+                        <td>string</td>
+                        <td>Part of speech in English</td>
+                    </tr>
+                    <tr>
+                        <td><code>tokens[].meaning</code></td>
+                        <td>string</td>
+                        <td>English meaning from JMDict</td>
+                    </tr>
+                    <tr>
+                        <td><code>tokens[].conjugation</code></td>
+                        <td>object</td>
+                        <td>Conjugation breakdown (if applicable)</td>
+                    </tr>
+                    <tr>
+                        <td><code>tokens[].components</code></td>
+                        <td>array</td>
+                        <td>Morpheme components for compound words</td>
+                    </tr>
+                </table>
+
+                <h4>Example</h4>
+                <pre><code>curl -X POST http://localhost:8000/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"text": "食べられなかった"}'</code></pre>
+            </div>
+        </section>
+
+        <!-- /analyze_simple -->
+        <section id="analyze-simple">
+            <h2><span class="method-badge method-post">POST</span> /analyze_simple</h2>
+            <p>Vocabulary-focused analysis that filters grammar words and provides clean study-ready output. Perfect for flashcard apps and vocabulary extraction.</p>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="endpoint-badge">POST /analyze_simple</span>
+                    <span class="tag tag-green">Vocabulary Focus</span>
+                </div>
+
+                <h4>Features</h4>
+                <ul>
+                    <li>Filters particles, auxiliaries, and grammar-only words</li>
+                    <li>Groups verbs with their conjugations</li>
+                    <li>Groups na-adjectives with copula (好きじゃない)</li>
+                    <li>Provides conjugation hints in plain English</li>
+                    <li>Returns base form readings</li>
+                </ul>
+
+                <h4>Example</h4>
+                <pre><code>curl -X POST http://localhost:8000/analyze_simple \
+  -H "Content-Type: application/json" \
+  -d '{"text": "働かなきゃいけない"}'
+
+# Response:
+{
+  "vocabulary": [
+    {
+      "word": "働かなきゃいけない",
+      "base": "働く",
+      "reading": "はたらく",
+      "meaning": "to work; to labor",
+      "conjugation_hint": "must; have to (casual)"
+    }
+  ],
+  "count": 1,
+  "text_result": "働く（はたらく）= to work; to labor [must; have to (casual)]"
+}</code></pre>
+            </div>
+        </section>
+
+        <!-- /analyze_full -->
+        <section id="analyze-full">
+            <h2><span class="method-badge method-post">POST</span> /analyze_full</h2>
+            <p>Complete grammatical breakdown including particles, auxiliaries, and grammar explanations. Best for grammar study and detailed analysis.</p>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="endpoint-badge">POST /analyze_full</span>
+                    <span class="tag tag-blue">Grammar Focus</span>
+                </div>
+
+                <h4>Additional Features</h4>
+                <ul>
+                    <li>Includes all tokens including particles</li>
+                    <li>Grammar notes in 【brackets】</li>
+                    <li>Detects 100+ compound grammar phrases</li>
+                    <li>Conjugation breakdown for verbs</li>
+                </ul>
+
+                <h4>Example</h4>
+                <pre><code>curl -X POST http://localhost:8000/analyze_full \
+  -H "Content-Type: application/json" \
+  -d '{"text": "彼は来るかもしれない"}'
+
+# Response text_result:
+彼（かれ）[Pronoun] 【he/him】
+は（は）[Particle] 【topic marker】
+来る（くる）[Verb] = to come
+かもしれない（かもしれない）[Phrase] 【might; may; possibly】</code></pre>
+            </div>
+        </section>
+
+        <!-- /deconjugate -->
+        <section id="deconjugate">
+            <h2><span class="method-badge method-post">POST</span> /deconjugate</h2>
+            <p>Analyze a conjugated word and break it down into its conjugation layers with natural English translation hints.</p>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="endpoint-badge">POST /deconjugate</span>
+                    <span class="tag tag-red">Conjugation Analysis</span>
+                </div>
+
+                <h4>Request Body</h4>
+                <table>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td><code>word</code></td>
+                        <td>string</td>
+                        <td>Yes</td>
+                        <td>Conjugated word to analyze</td>
+                    </tr>
+                    <tr>
+                        <td><code>type</code></td>
+                        <td>string</td>
+                        <td>No</td>
+                        <td>"godan", "ichidan", "i-adj", or "na-adj"</td>
+                    </tr>
+                </table>
+
+                <h4>Example</h4>
+                <pre><code>curl -X POST http://localhost:8000/deconjugate \
+  -H "Content-Type: application/json" \
+  -d '{"word": "食べさせられた", "type": "ichidan"}'
+
+# Response:
+{
+  "word": "食べさせられた",
+  "base": "食べる",
+  "type": "ichidan",
+  "conjugation": {
+    "chain": [
+      {"type": "SERU_SASERU", "english": "causative", "meaning": "make/let do"},
+      {"type": "RERU_RARERU", "english": "passive/potential", "meaning": "is done"},
+      {"type": "TA", "english": "past", "meaning": "did"}
+    ],
+    "summary": "causative + passive/potential + past",
+    "translation_hint": "was made to eat"
+  }
+}</code></pre>
+            </div>
+        </section>
+
+        <!-- /conjugate -->
+        <section id="conjugate">
+            <h2><span class="method-badge method-post">POST</span> /conjugate</h2>
+            <p>Generate various conjugated forms from a dictionary form. Useful for conjugation practice and reference.</p>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="endpoint-badge">POST /conjugate</span>
+                    <span class="tag tag-yellow">Generation</span>
+                </div>
+
+                <h4>Request Body</h4>
+                <table>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td><code>word</code></td>
+                        <td>string</td>
+                        <td>Dictionary form of verb or adjective</td>
+                    </tr>
+                    <tr>
+                        <td><code>type</code></td>
+                        <td>string</td>
+                        <td>"godan", "ichidan", "i-adj", or "na-adj"</td>
+                    </tr>
+                </table>
+
+                <h4>Example</h4>
+                <pre><code>curl -X POST http://localhost:8000/conjugate \
+  -H "Content-Type: application/json" \
+  -d '{"word": "食べる", "type": "ichidan"}'
+
+# Response includes forms like:
+{
+  "base": "食べる",
+  "type": "ichidan",
+  "forms": {
+    "negative": "食べない",
+    "past": "食べた",
+    "te_form": "食べて",
+    "potential": "食べられる",
+    "passive": "食べられる",
+    "causative": "食べさせる",
+    "volitional": "食べよう",
+    "conditional": "食べれば",
+    "imperative": "食べろ"
+  }
+}</code></pre>
+            </div>
+        </section>
+
+        <!-- /tokenize -->
+        <section id="tokenize">
+            <h2><span class="method-badge method-post">POST</span> /tokenize</h2>
+            <p>Raw tokenization output from SudachiPy for debugging and development purposes.</p>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="endpoint-badge">POST /tokenize</span>
+                    <span class="tag tag-blue">Debug</span>
+                </div>
+
+                <h4>Example</h4>
+                <pre><code>curl -X POST http://localhost:8000/tokenize \
+  -H "Content-Type: application/json" \
+  -d '{"text": "食べている"}'
+
+# Response:
+食べ -> 食べる [動詞-一般] タベ
+て -> て [助詞-接続助詞] テ
+いる -> いる [動詞-非自立可能] イル</code></pre>
+            </div>
+        </section>
+
+        <!-- Conjugation Types -->
+        <section id="conjugations">
+            <h2>Conjugation Types</h2>
+            <p>The API recognizes the following base conjugation forms:</p>
+
+            <table>
+                <tr>
+                    <th>Type</th>
+                    <th>Japanese</th>
+                    <th>Description</th>
+                    <th>Example</th>
+                </tr>
+                <tr>
+                    <td><code>DICTIONARY</code></td>
+                    <td>辞書形</td>
+                    <td>Dictionary/plain form</td>
+                    <td>食べる</td>
+                </tr>
+                <tr>
+                    <td><code>NEGATIVE</code></td>
+                    <td>否定形</td>
+                    <td>Negative form</td>
+                    <td>食べない</td>
+                </tr>
+                <tr>
+                    <td><code>TA</code></td>
+                    <td>過去形</td>
+                    <td>Past tense</td>
+                    <td>食べた</td>
+                </tr>
+                <tr>
+                    <td><code>TE</code></td>
+                    <td>て形</td>
+                    <td>Connective form</td>
+                    <td>食べて</td>
+                </tr>
+                <tr>
+                    <td><code>CONDITIONAL</code></td>
+                    <td>仮定形</td>
+                    <td>Conditional (ば)</td>
+                    <td>食べれば</td>
+                </tr>
+                <tr>
+                    <td><code>TARA</code></td>
+                    <td>たら形</td>
+                    <td>Conditional (たら)</td>
+                    <td>食べたら</td>
+                </tr>
+                <tr>
+                    <td><code>VOLITIONAL</code></td>
+                    <td>意志形</td>
+                    <td>Volitional/let's</td>
+                    <td>食べよう</td>
+                </tr>
+                <tr>
+                    <td><code>IMPERATIVE</code></td>
+                    <td>命令形</td>
+                    <td>Command</td>
+                    <td>食べろ</td>
+                </tr>
+                <tr>
+                    <td><code>CONJUNCTIVE</code></td>
+                    <td>連用形</td>
+                    <td>Masu stem</td>
+                    <td>食べ</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- Auxiliaries -->
+        <section id="auxiliaries">
+            <h2>Auxiliaries</h2>
+            <p>Auxiliary constructions that can be stacked on verbs:</p>
+
+            <div class="grammar-category">
+                <h4>Potential/Passive/Causative</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">れる/られる (passive/potential)</span>
+                    <span class="grammar-item">せる/させる (causative)</span>
+                    <span class="grammar-item">させられる (causative-passive)</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Desire & Evidential</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">たい (want to)</span>
+                    <span class="grammar-item">たがる (seems to want)</span>
+                    <span class="grammar-item">らしい (apparently)</span>
+                    <span class="grammar-item">そうだ (I heard)</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Aspect & Direction</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">ている (progressive)</span>
+                    <span class="grammar-item">てある (resultative)</span>
+                    <span class="grammar-item">てみる (try doing)</span>
+                    <span class="grammar-item">ておく (do in advance)</span>
+                    <span class="grammar-item">てしまう (end up doing)</span>
+                    <span class="grammar-item">ていく (go on doing)</span>
+                    <span class="grammar-item">てくる (come to do)</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Benefactive (Giving/Receiving)</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">てあげる (do for someone)</span>
+                    <span class="grammar-item">てもらう (have someone do)</span>
+                    <span class="grammar-item">てくれる (do for me)</span>
+                    <span class="grammar-item">ていただく (receive humbly)</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Degree & Manner</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">すぎる (too much)</span>
+                    <span class="grammar-item">やすい (easy to)</span>
+                    <span class="grammar-item">にくい (hard to)</span>
+                    <span class="grammar-item">始める (start doing)</span>
+                    <span class="grammar-item">続ける (continue)</span>
+                    <span class="grammar-item">終わる (finish)</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Compound Verb Auxiliaries (Masu-stem +)</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">かける (start; partially)</span>
+                    <span class="grammar-item">かねる (cannot; hesitate)</span>
+                    <span class="grammar-item">きる (complete fully)</span>
+                    <span class="grammar-item">きれない (can't finish)</span>
+                    <span class="grammar-item">こむ (do thoroughly)</span>
+                    <span class="grammar-item">だす (burst into)</span>
+                    <span class="grammar-item">なおす (redo; fix)</span>
+                    <span class="grammar-item">ながら (while doing)</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Difficulty/Ease</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">やすい (easy to)</span>
+                    <span class="grammar-item">にくい (hard to)</span>
+                    <span class="grammar-item">づらい (hard to - physical)</span>
+                    <span class="grammar-item">がたい (hard to - psychological)</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>State/Manner</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">まま (as is)</span>
+                    <span class="grammar-item">ずに (without doing)</span>
+                    <span class="grammar-item">てる (casual progressive)</span>
+                    <span class="grammar-item">とく (casual advance)</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Grammar Patterns -->
+        <section id="grammar-patterns">
+            <h2>Grammar Patterns</h2>
+            <p>The API automatically detects and groups these common grammar phrases:</p>
+
+            <div class="grammar-category">
+                <h4>Obligation (Must)</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">なければならない</span>
+                    <span class="grammar-item">なければいけない</span>
+                    <span class="grammar-item">ないといけない</span>
+                    <span class="grammar-item">なきゃいけない</span>
+                    <span class="grammar-item">なくちゃいけない</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Prohibition (Must Not)</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">てはいけない</span>
+                    <span class="grammar-item">てはだめ</span>
+                    <span class="grammar-item">ちゃいけない</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Permission (May)</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">てもいい</span>
+                    <span class="grammar-item">てもいいですか</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Conjecture</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">かもしれない</span>
+                    <span class="grammar-item">はずだ</span>
+                    <span class="grammar-item">だろう</span>
+                    <span class="grammar-item">にちがいない</span>
+                    <span class="grammar-item">わけがない</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Appearance</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">らしい</span>
+                    <span class="grammar-item">みたいだ</span>
+                    <span class="grammar-item">ようだ</span>
+                    <span class="grammar-item">っぽい</span>
+                    <span class="grammar-item">そうだ</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Purpose & Reason</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">ために</span>
+                    <span class="grammar-item">ように</span>
+                    <span class="grammar-item">ので</span>
+                    <span class="grammar-item">のに</span>
+                    <span class="grammar-item">せいで</span>
+                    <span class="grammar-item">おかげで</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Extent & Comparison</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">ほど</span>
+                    <span class="grammar-item">ほうがいい</span>
+                    <span class="grammar-item">ばかり</span>
+                    <span class="grammar-item">だけでなく</span>
+                    <span class="grammar-item">について</span>
+                    <span class="grammar-item">によって</span>
+                </div>
+            </div>
+
+            <div class="grammar-category">
+                <h4>Time Expressions</h4>
+                <div class="grammar-list">
+                    <span class="grammar-item">うちに</span>
+                    <span class="grammar-item">あいだに</span>
+                    <span class="grammar-item">たびに</span>
+                    <span class="grammar-item">ところだ</span>
+                    <span class="grammar-item">ばかり</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Code Examples -->
+        <section id="examples">
+            <h2>Code Examples</h2>
+
+            <h3>Python</h3>
+            <pre><code>import requests
+
+def analyze_japanese(text: str) -> dict:
+    response = requests.post(
+        "http://localhost:8000/analyze_simple",
+        json={"text": text}
+    )
+    return response.json()
+
+# Example usage
+result = analyze_japanese("日本語を勉強しなければならない")
+for item in result["vocabulary"]:
+    print(f"{item['base']} ({item['reading']}) = {item['meaning']}")
+    if item.get("conjugation_hint"):
+        print(f"  → {item['conjugation_hint']}")</code></pre>
+
+            <h3>JavaScript / TypeScript</h3>
+            <pre><code>async function analyzeJapanese(text: string) {
+  const response = await fetch("http://localhost:8000/analyze_simple", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text })
+  });
+  return response.json();
+}
+
+// Example usage
+const result = await analyzeJapanese("食べられなかった");
+result.vocabulary.forEach(item => {
+  console.log(`${item.base} (${item.reading}) = ${item.meaning}`);
+  if (item.conjugation_hint) {
+    console.log(`  → ${item.conjugation_hint}`);
+  }
+});</code></pre>
+
+            <h3>cURL</h3>
+            <pre><code># Simple analysis
+curl -X POST http://localhost:8000/analyze_simple \
+  -H "Content-Type: application/json" \
+  -d '{"text": "彼女は優しくて頭がいい"}'
+
+# Full grammar analysis
+curl -X POST http://localhost:8000/analyze_full \
+  -H "Content-Type: application/json" \
+  -d '{"text": "食べてはいけないかもしれない"}'
+
+# Deconjugate a verb
+curl -X POST http://localhost:8000/deconjugate \
+  -H "Content-Type: application/json" \
+  -d '{"word": "書かされていた", "type": "godan"}'
+
+# Generate conjugations
+curl -X POST http://localhost:8000/conjugate \
+  -H "Content-Type: application/json" \
+  -d '{"word": "読む", "type": "godan"}'</code></pre>
+        </section>
+
+        <footer style="margin-top: 4rem; padding: 2rem 0; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted);">
+            <p>Yomisub API Documentation • Built with ❤️ for Japanese learners</p>
+        </footer>
+    </main>
+
+    <script>
+        // Highlight active nav link on scroll
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
