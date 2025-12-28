@@ -11,6 +11,7 @@ if not found locally.
 import gzip
 import json
 import re
+import unicodedata
 import urllib.request
 from functools import lru_cache
 from pathlib import Path
@@ -198,7 +199,16 @@ class JMDictionary:
         """Get or create a singleton instance."""
         return cls()
     
-    def _find_best_entry(self, word: str, reading: str | None = None) -> dict | None:
+    def _normalize_kana(self, text: str) -> str:
+        """Normalize kana by removing dakuten/handakuten (voiced marks)."""
+        if not text:
+            return ""
+        # NFD decomposition splits 'ば' into 'は' + dakuten
+        normalized = unicodedata.normalize('NFD', text)
+        # Filter out combining voiced sound marks (U+3099) and semi-voiced (U+309A)
+        return "".join(c for c in normalized if c not in ('\u3099', '\u309a'))
+
+    def _find_best_entry(self, word: str, reading: str | None = None, is_counter: bool = False) -> dict | None:
         """Find the best matching dictionary entry."""
         entries = self._index_kanji.get(word) or self._index_kana.get(word)
         
@@ -207,6 +217,9 @@ class JMDictionary:
         
         # Check if input is purely hiragana
         is_hiragana_input = all('\u3040' <= c <= '\u309f' for c in word)
+        
+        # Precompute normalized reading if available
+        norm_reading = self._normalize_kana(reading) if reading else None
 
         # Find best entry: prioritize common entries and reading matches
         best_entry = None
@@ -222,16 +235,27 @@ class JMDictionary:
             for kana in entry.get("kana", []):
                 if kana.get("common"):
                     score += 5
-                # Match by reading if provided
-                if reading and kana.get("text") == reading:
+                kana_text = kana.get("text")
+                if reading and kana_text == reading:
                     score += 20  # Strong preference for reading match
+                elif norm_reading and kana_text and self._normalize_kana(kana_text) == norm_reading:
+                    score += 18  # Near-exact phonetic match
+            
+            senses = entry.get("sense", [])
             
             # Prioritize 'usually kana' entries if input is hiragana
-            senses = entry.get("sense", [])
             if senses and is_hiragana_input:
                 misc = senses[0].get("misc", [])
                 if "uk" in misc:
                     score += 15
+
+            # Boost counter entries if word is used as a counter
+            if is_counter and senses:
+                # Check if any sense has 'ctr' POS
+                for sense in senses:
+                    if "ctr" in sense.get("partOfSpeech", []):
+                        score += 50
+                        break
 
             if score > best_score:
                 best_score = score
@@ -239,9 +263,9 @@ class JMDictionary:
         
         return best_entry or entries[0]
 
-    def lookup(self, word: str, reading: str | None = None) -> str | None:
+    def lookup(self, word: str, reading: str | None = None, is_counter: bool = False) -> str | None:
         """Look up meaning (string only)."""
-        entry = self._find_best_entry(word, reading)
+        entry = self._find_best_entry(word, reading, is_counter)
         if not entry:
             return None
         
@@ -249,12 +273,19 @@ class JMDictionary:
         if not senses:
             return None
             
-        glosses = [g.get("text", "") for g in senses[0].get("gloss", []) if g.get("text")]
+        # If we looked for a counter, prioritize the counter sense gloss
+        target_senses = senses
+        if is_counter:
+            counter_senses = [s for s in senses if "ctr" in s.get("partOfSpeech", [])]
+            if counter_senses:
+                target_senses = counter_senses
+
+        glosses = [g.get("text", "") for g in target_senses[0].get("gloss", []) if g.get("text")]
         return "; ".join(glosses[:3]) if glosses else None
 
-    def lookup_details(self, word: str, reading: str | None = None) -> dict | None:
+    def lookup_details(self, word: str, reading: str | None = None, is_counter: bool = False) -> dict | None:
         """Look up meaning and tags."""
-        entry = self._find_best_entry(word, reading)
+        entry = self._find_best_entry(word, reading, is_counter)
         if not entry:
             return None
             
@@ -262,11 +293,19 @@ class JMDictionary:
         if not senses:
             return None
         
-        sense = senses[0]
-        glosses = [g.get("text", "") for g in sense.get("gloss", []) if g.get("text")]
+        # If we looked for a counter, prioritize the counter sense
+        target_sense = senses[0]
+        if is_counter:
+            counter_senses = [s for s in senses if "ctr" in s.get("partOfSpeech", [])]
+            if counter_senses:
+                target_sense = counter_senses[0]
+
+        glosses = [g.get("text", "") for g in target_sense.get("gloss", []) if g.get("text")]
         meaning = "; ".join(glosses[:3]) if glosses else None
         
-        # Extract tags
+        # Extract tags (from the chosen sense AND generic entry tags if needed)
+        # We'll use target_sense for specific tags, but common/uk might be on others? 
+        # Simpler to just use target_sense for POS/Misc
         tags = set()
         
         # POS tags mapping
@@ -274,8 +313,9 @@ class JMDictionary:
             "vt": "Transitive",
             "vi": "Intransitive",
             "uk": "Usually Kana",
+            "ctr": "Counter",
         }
-        for pos in sense.get("partOfSpeech", []):
+        for pos in target_sense.get("partOfSpeech", []):
             if pos in POS_TAGS:
                 tags.add(POS_TAGS[pos])
             elif "adj" in pos:
@@ -294,7 +334,7 @@ class JMDictionary:
             "food": "Food",
         }
         
-        for m in sense.get("misc", []) + sense.get("field", []):
+        for m in target_sense.get("misc", []) + target_sense.get("field", []):
             if m in MISC_TAGS:
                 tags.add(MISC_TAGS[m])
 

@@ -970,7 +970,8 @@ def analyze_text(text: str) -> AnalyzeResponse:
              if base_m:
                  lookup_reading = jaconv.kata2hira(base_m[0].reading_form())
 
-        details = jmdict.lookup_details(base_form, lookup_reading)
+        is_counter = "助数詞" in pos_tuple or (main_pos == "接尾辞" and "名詞的" in pos_tuple)
+        details = jmdict.lookup_details(base_form, lookup_reading, is_counter=is_counter)
         meaning = details["meaning"] if details else None
         tags = details["tags"] if details else []
         
@@ -1265,7 +1266,7 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
 
         
         
-        meaning = jmdict.lookup(base_form, reading) or ""
+        meaning = jmdict.lookup(base_form, reading, is_counter=is_counter) or ""
         
         if len(meaning) > 40:
             meaning_display = meaning[:40] + "..."
@@ -1426,7 +1427,8 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
             
 
             
-            details = jmdict.lookup_details(base_form, lookup_reading)
+            is_counter = "助数詞" in pos_tuple or (main_pos == "接尾辞" and "名詞的" in pos_tuple)
+            details = jmdict.lookup_details(base_form, lookup_reading, is_counter=is_counter)
             meaning = details["meaning"] if details else None
             tags = details["tags"] if details else []
 
