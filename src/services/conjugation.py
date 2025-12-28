@@ -1100,7 +1100,11 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
         
         # Only include content words: nouns, verbs, na-adjectives, pronouns
         # Skip i-adjectives that are non-independent (like ない in 好きじゃない)
-        if main_pos not in {"名詞", "動詞", "形状詞", "代名詞", "副詞", "接続詞", "連体詞"}:
+        # Allow content words and nominal suffixes (counters like 本, つ, 日)
+        is_content_word = main_pos in {"名詞", "動詞", "形状詞", "代名詞", "副詞", "接続詞", "連体詞"}
+        is_counter = (main_pos == "接尾辞" and sub_pos == "名詞的")
+        
+        if not is_content_word and not is_counter:
             # Exception: independent i-adjectives are OK (高い, 美しい)
             if main_pos == "形容詞" and sub_pos != "非自立可能":
                 pass  # Allow it
@@ -1260,9 +1264,8 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
             reading = jaconv.kata2hira(m.reading_form())
 
         
-        details = jmdict.lookup_details(base_form, reading)
-        meaning = details["meaning"] if details else ""
-        tags = details["tags"] if details else [] # Type: ignore (used in VocabularyItem)
+        
+        meaning = jmdict.lookup(base_form, reading) or ""
         
         if len(meaning) > 40:
             meaning_display = meaning[:40] + "..."
@@ -1300,7 +1303,6 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
             reading=reading,
             meaning=meaning_display,
             conjugation_hint=conjugation_hint,
-            tags=tags,
         ))
         
         line = f"{base_form}（{reading}）= {meaning_display}"

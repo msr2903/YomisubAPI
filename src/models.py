@@ -76,7 +76,6 @@ class VocabularyItem(BaseModel):
     reading: str = Field(..., description="Reading in hiragana")
     meaning: str = Field(..., description="English meaning")
     conjugation_hint: str | None = Field(None, description="How the word is conjugated")
-    tags: list[str] = Field(default_factory=list, description="Metadata tags (e.g. slang, transitive)")
 
 
 class PhraseToken(BaseModel):
