@@ -768,9 +768,42 @@ morphemes = tokenizer.tokenize(<span class="string">"食べた"</span>, SplitMod
     _index_kanji: <span class="class">dict</span>[<span class="class">str</span>, <span class="class">list</span>[<span class="class">dict</span>]]  <span class="comment"># "日本語" → [entry1, entry2, ...]</span>
     _index_kana: <span class="class">dict</span>[<span class="class">str</span>, <span class="class">list</span>[<span class="class">dict</span>]]   <span class="comment"># "にほんご" → [entry1, ...]</span>
 
-<span class="comment"># Lookup priority:</span>
-<span class="comment"># 1. Try kanji index first (exact kanji match)</span>
-<span class="comment"># 2. Fall back to kana index (hiragana/katakana)</span></code></pre>
+<h3 id="jmdict-smart-lookup">Smart Lookup Algorithm</h3>
+            <p>To resolve homonyms (e.g., 本 as "book" vs "origin", words like "can" vs "out of stock"), we use a weighted scoring system:</p>
+
+            <table>
+                <tr>
+                    <th>Condition</th>
+                    <th>Points</th>
+                    <th>Reason</th>
+                </tr>
+                <tr>
+                    <td>Common Entry</td>
+                    <td>+10</td>
+                    <td>Prioritizes common words (<code>common=True</code>)</td>
+                </tr>
+                <tr>
+                    <td>Reading Match</td>
+                    <td>+20</td>
+                    <td>Prioritizes exact reading match (e.g. ほん vs もと)</td>
+                </tr>
+                <tr>
+                    <td>Usually Kana</td>
+                    <td>+15</td>
+                    <td>Prioritizes "usually kana" entries for hiragana input (fixes こと)</td>
+                </tr>
+            </table>
+
+            <pre><code><span class="keyword">def</span> <span class="function">lookup</span>(self, word, reading=<span class="keyword">None</span>):
+    best_score = -1
+    <span class="keyword">for</span> entry <span class="keyword">in</span> entries:
+        score = 0
+        <span class="keyword">if</span> entry.is_common: score += 10
+        <span class="keyword">if</span> entry.reading == reading: score += 20
+        <span class="keyword">if</span> is_hiragana(word) <span class="keyword">and</span> entry.is_usually_kana: score += 15
+        
+        <span class="keyword">if</span> score > best_score:
+            best_entry = entry</code></pre>
 
             <h3 id="jmdict-download">Auto-Download</h3>
             <p>If the dictionary isn't found locally, it's automatically downloaded from GitHub:</p>

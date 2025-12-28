@@ -198,12 +198,15 @@ class JMDictionary:
         """Get or create a singleton instance."""
         return cls()
     
-    def lookup(self, word: str) -> str | None:
+    def lookup(self, word: str, reading: str | None = None) -> str | None:
         """
         Look up a word and return its English meaning.
         
+        Prioritizes entries marked as 'common' and can filter by reading.
+        
         Args:
             word: Japanese word (kanji or kana)
+            reading: Optional hiragana/katakana reading to filter by
         
         Returns:
             English meaning string, or None if not found.
@@ -214,9 +217,44 @@ class JMDictionary:
         if not entries:
             return None
         
-        # Get first entry's first sense's first gloss
-        entry = entries[0]
-        senses = entry.get("sense", [])
+        # Check if input is purely hiragana
+        is_hiragana_input = all('\u3040' <= c <= '\u309f' for c in word)
+
+        # Find best entry: prioritize common entries and reading matches
+        best_entry = None
+        best_score = -1
+        
+        for entry in entries:
+            score = 0
+            
+            # Check if any kanji/kana form is marked as common
+            for kanji in entry.get("kanji", []):
+                if kanji.get("text") == word and kanji.get("common"):
+                    score += 10
+            for kana in entry.get("kana", []):
+                if kana.get("common"):
+                    score += 5
+                # Match by reading if provided
+                if reading and kana.get("text") == reading:
+                    score += 20  # Strong preference for reading match
+            
+            # Prioritize 'usually kana' entries if input is hiragana
+            # This fixes cases like こと (thing vs zither)
+            senses = entry.get("sense", [])
+            if senses and is_hiragana_input:
+                misc = senses[0].get("misc", [])
+                if "uk" in misc:
+                    score += 15
+
+            if score > best_score:
+                best_score = score
+                best_entry = entry
+        
+        # Fall back to first entry if no good match
+        if best_entry is None:
+            best_entry = entries[0]
+        
+        senses = best_entry.get("sense", [])
         
         if not senses:
             return None

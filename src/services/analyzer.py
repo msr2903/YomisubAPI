@@ -156,7 +156,7 @@ class JapaneseAnalyzer:
         # Return mapped English POS, or fall back to the original Japanese category
         return self.POS_MAPPING.get(main_category, main_category)
 
-    def _lookup_meaning(self, word: str, surface: str = "") -> str | None:
+    def _lookup_meaning(self, word: str, reading: str | None = None, surface: str = "") -> str | None:
         """Look up English meaning for a Japanese word."""
         # Check grammar map first
         if word in self.GRAMMAR_MAP:
@@ -164,7 +164,7 @@ class JapaneseAnalyzer:
         if surface and surface in self.GRAMMAR_MAP:
             return self.GRAMMAR_MAP[surface]
         # Fall back to JMDict
-        return self._jmdict.lookup(word)
+        return self._jmdict.lookup(word, reading)
 
     def analyze(self, text: str, split_mode: SplitMode = SplitMode.A) -> list[TokenInfo]:
         """
@@ -198,7 +198,12 @@ class JapaneseAnalyzer:
                 r_kata = m.reading_form()
                 r = jaconv.kata2hira(r_kata)
                 p = self._extract_pos(m)
-                mn = self._lookup_meaning(b, s)
+                
+                # Heuristic: if surface matches base (noun), reading is correct.
+                # If not (verb conjugation), surface reading != base reading.
+                # We simply pass surface reading; if it matches base reading, great.
+                # If not, JMDict lookup will ignore it and rely on 'common' flag.
+                mn = self._lookup_meaning(b, r, s)
                 if not mn and self._is_katakana(s):
                     mn = None # Ensure consistent logic for cleanup
                 return TokenInfo(s, b, r, p, mn)

@@ -961,7 +961,16 @@ def analyze_text(text: str) -> AnalyzeResponse:
         reading = jaconv.kata2hira(m.reading_form())
         pos_english = POS_MAP.get(main_pos, main_pos)
         
-        meaning = jmdict.lookup(base_form)
+        # Get base reading for lookup to disambiguate homonyms (e.g. 本: hon vs moto)
+        lookup_reading = reading
+        if base_form != surface or main_pos == "動詞" or main_pos == "形容詞":
+             # Use the reading of the base form for dictionary lookup
+             # This handles conjugated verbs where surface reading != base reading
+             base_m = list(tokenizer.tokenize(base_form, SplitMode.C))
+             if base_m:
+                 lookup_reading = jaconv.kata2hira(base_m[0].reading_form())
+
+        meaning = jmdict.lookup(base_form, lookup_reading)
         if not meaning and base_form in GRAMMAR_MAP:
             meaning = GRAMMAR_MAP[base_form]
         if not meaning and surface in GRAMMAR_MAP:
@@ -1246,7 +1255,7 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
         else:
             reading = jaconv.kata2hira(m.reading_form())
         
-        meaning = jmdict.lookup(base_form) or ""
+        meaning = jmdict.lookup(base_form, reading) or ""
         
         if len(meaning) > 40:
             meaning_display = meaning[:40] + "..."
@@ -1396,7 +1405,14 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
         grammar_note = None
         
         if main_pos in {"名詞", "動詞", "形容詞", "形状詞", "副詞"}:
-            meaning = jmdict.lookup(base_form)
+            # Get base reading for lookup
+            lookup_reading = reading
+            if base_form != surface or main_pos == "動詞" or main_pos == "形容詞":
+                 base_m = list(tokenizer.tokenize(base_form, SplitMode.C))
+                 if base_m:
+                     lookup_reading = jaconv.kata2hira(base_m[0].reading_form())
+            
+            meaning = jmdict.lookup(base_form, lookup_reading)
             if meaning and len(meaning) > 30:
                 meaning = meaning[:30] + "..."
         
@@ -1502,7 +1518,14 @@ def deconjugate_word(
     if not dict_form:
         raise ValueError("Could not determine dictionary form")
     
-    meaning = jmdict.lookup(dict_form)
+    # Get reading of the dictionary form for accurate lookup
+    dict_reading = None
+    if jmdict.is_loaded:
+        morphemes = list(analyzer._tokenizer.tokenize(dict_form, SplitMode.C))
+        if morphemes:
+            dict_reading = jaconv.kata2hira(morphemes[0].reading_form())
+
+    meaning = jmdict.lookup(dict_form, dict_reading)
     
     layers: list[ConjugationLayer] = []
     full_breakdown = ""
