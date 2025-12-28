@@ -28,9 +28,14 @@ You can use Yomisub API directly on your iOS device with streaming app using thi
 
 👉 **[Install Yomisub iOS Shortcut](https://www.icloud.com/shortcuts/520d8ae630684ad99b7a495e306cc64a)**
 
-This shortcut allows you to send subtitles from any streaming app with subtitles to your hosted API and receive the notifications in seconds.
+This shortcut allows you to send subtitles from any streaming app with subtitles to your hosted API (the default is my huggingface API) and receive the notifications in seconds.
+Just set a trigger to the shortcut (Back tap, Action button, etc. ) after found a subtitle you want to analyze, then the notification will be sent. 
 
-## Quick Start
+Example in Netflix:
+<img width="1218" height="563" alt="IMG_4481" src="https://github.com/user-attachments/assets/ebbc952f-9b72-45a3-9b9c-ed050dcbc295" />
+
+
+## Quick Start to Host your own API
 
 ### 1. Install Dependencies
 ```bash
