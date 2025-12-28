@@ -970,7 +970,10 @@ def analyze_text(text: str) -> AnalyzeResponse:
              if base_m:
                  lookup_reading = jaconv.kata2hira(base_m[0].reading_form())
 
-        meaning = jmdict.lookup(base_form, lookup_reading)
+        details = jmdict.lookup_details(base_form, lookup_reading)
+        meaning = details["meaning"] if details else None
+        tags = details["tags"] if details else []
+        
         if not meaning and base_form in GRAMMAR_MAP:
             meaning = GRAMMAR_MAP[base_form]
         if not meaning and surface in GRAMMAR_MAP:
@@ -1060,6 +1063,7 @@ def analyze_text(text: str) -> AnalyzeResponse:
             reading=compound_reading,
             pos=pos_english,
             meaning=meaning,
+            tags=tags,
             components=components if components else None,
             conjugation=conjugation_info,
         ))
@@ -1254,8 +1258,11 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
                 reading = jaconv.kata2hira(m.reading_form())
         else:
             reading = jaconv.kata2hira(m.reading_form())
+
         
-        meaning = jmdict.lookup(base_form, reading) or ""
+        details = jmdict.lookup_details(base_form, reading)
+        meaning = details["meaning"] if details else ""
+        tags = details["tags"] if details else [] # Type: ignore (used in VocabularyItem)
         
         if len(meaning) > 40:
             meaning_display = meaning[:40] + "..."
@@ -1291,6 +1298,7 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
             reading=reading,
             meaning=meaning_display,
             conjugation_hint=conjugation_hint,
+            tags=tags,
         ))
         
         line = f"{base_form}（{reading}）= {meaning_display}"
@@ -1412,7 +1420,12 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
                  if base_m:
                      lookup_reading = jaconv.kata2hira(base_m[0].reading_form())
             
-            meaning = jmdict.lookup(base_form, lookup_reading)
+
+            
+            details = jmdict.lookup_details(base_form, lookup_reading)
+            meaning = details["meaning"] if details else None
+            tags = details["tags"] if details else []
+
             if meaning and len(meaning) > 30:
                 meaning = meaning[:30] + "..."
         
@@ -1464,6 +1477,7 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
             pos=pos_english,
             meaning=meaning,
             grammar_note=grammar_note,
+            tags=tags if 'tags' in locals() else [],
             conjugation=conjugation_info,
         ))
         

@@ -198,20 +198,8 @@ class JMDictionary:
         """Get or create a singleton instance."""
         return cls()
     
-    def lookup(self, word: str, reading: str | None = None) -> str | None:
-        """
-        Look up a word and return its English meaning.
-        
-        Prioritizes entries marked as 'common' and can filter by reading.
-        
-        Args:
-            word: Japanese word (kanji or kana)
-            reading: Optional hiragana/katakana reading to filter by
-        
-        Returns:
-            English meaning string, or None if not found.
-        """
-        # Try kanji index first, then kana
+    def _find_best_entry(self, word: str, reading: str | None = None) -> dict | None:
+        """Find the best matching dictionary entry."""
         entries = self._index_kanji.get(word) or self._index_kana.get(word)
         
         if not entries:
@@ -239,7 +227,6 @@ class JMDictionary:
                     score += 20  # Strong preference for reading match
             
             # Prioritize 'usually kana' entries if input is hiragana
-            # This fixes cases like こと (thing vs zither)
             senses = entry.get("sense", [])
             if senses and is_hiragana_input:
                 misc = senses[0].get("misc", [])
@@ -250,26 +237,71 @@ class JMDictionary:
                 best_score = score
                 best_entry = entry
         
-        # Fall back to first entry if no good match
-        if best_entry is None:
-            best_entry = entries[0]
+        return best_entry or entries[0]
+
+    def lookup(self, word: str, reading: str | None = None) -> str | None:
+        """Look up meaning (string only)."""
+        entry = self._find_best_entry(word, reading)
+        if not entry:
+            return None
         
-        senses = best_entry.get("sense", [])
-        
+        senses = entry.get("sense", [])
+        if not senses:
+            return None
+            
+        glosses = [g.get("text", "") for g in senses[0].get("gloss", []) if g.get("text")]
+        return "; ".join(glosses[:3]) if glosses else None
+
+    def lookup_details(self, word: str, reading: str | None = None) -> dict | None:
+        """Look up meaning and tags."""
+        entry = self._find_best_entry(word, reading)
+        if not entry:
+            return None
+            
+        senses = entry.get("sense", [])
         if not senses:
             return None
         
-        # Collect glosses from first sense
-        glosses = []
-        for gloss in senses[0].get("gloss", []):
-            text = gloss.get("text", "")
-            if text:
-                glosses.append(text)
+        sense = senses[0]
+        glosses = [g.get("text", "") for g in sense.get("gloss", []) if g.get("text")]
+        meaning = "; ".join(glosses[:3]) if glosses else None
         
-        if glosses:
-            return "; ".join(glosses[:3])  # Limit to 3 meanings
+        # Extract tags
+        tags = set()
         
-        return None
+        # POS tags mapping
+        POS_TAGS = {
+            "vt": "Transitive",
+            "vi": "Intransitive",
+            "uk": "Usually Kana",
+        }
+        for pos in sense.get("partOfSpeech", []):
+            if pos in POS_TAGS:
+                tags.add(POS_TAGS[pos])
+            elif "adj" in pos:
+                tags.add("Adjective")
+
+        # Misc/Field tags
+        MISC_TAGS = {
+            "uk": "Usually Kana",
+            "sl": "Slang",
+            "col": "Colloquial",
+            "hon": "Honorific",
+            "hum": "Humble",
+            "abbr": "Abbreviation",
+            "comp": "Computer", 
+            "med": "Medical",
+            "food": "Food",
+        }
+        
+        for m in sense.get("misc", []) + sense.get("field", []):
+            if m in MISC_TAGS:
+                tags.add(MISC_TAGS[m])
+
+        return {
+            "meaning": meaning,
+            "tags": sorted(list(tags))
+        }
     
     def lookup_full(self, word: str) -> list[dict] | None:
         """

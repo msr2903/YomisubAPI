@@ -64,6 +64,7 @@ class TokenResponse(BaseModel):
     reading: str = Field(..., description="Reading in hiragana")
     pos: str = Field(..., description="Part of speech")
     meaning: str | None = Field(None, description="English meaning")
+    tags: list[str] = Field(default_factory=list, description="Metadata tags (e.g. slang, transitive)")
     components: list[TokenComponent] | None = Field(None, description="Component tokens")
     conjugation: ConjugationInfo | None = Field(None, description="Conjugation breakdown")
 
@@ -75,6 +76,7 @@ class VocabularyItem(BaseModel):
     reading: str = Field(..., description="Reading in hiragana")
     meaning: str = Field(..., description="English meaning")
     conjugation_hint: str | None = Field(None, description="How the word is conjugated")
+    tags: list[str] = Field(default_factory=list, description="Metadata tags (e.g. slang, transitive)")
 
 
 class PhraseToken(BaseModel):
@@ -85,6 +87,7 @@ class PhraseToken(BaseModel):
     pos: str = Field(..., description="Part of speech (English)")
     meaning: str | None = Field(None, description="English meaning")
     grammar_note: str | None = Field(None, description="Grammar explanation")
+    tags: list[str] = Field(default_factory=list, description="Metadata tags (e.g. slang, transitive)")
     conjugation: ConjugationInfo | None = Field(None, description="Conjugation details")
 
 
