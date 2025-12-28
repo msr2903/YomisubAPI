@@ -1415,6 +1415,37 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
         if main_pos == "動詞" and compound_surface != base_form:
             type2 = is_verb_type2(pos_tuple)
             conjugation_info = try_deconjugate_verb(compound_surface, base_form, type2, meaning or "")
+            
+            # Fallback: detect common patterns that deconjugation might miss
+            if conjugation_info is None:
+                fallback_summary = None
+                if "なきゃいけない" in compound_surface or "なきゃならない" in compound_surface:
+                    fallback_summary = "must; have to (casual)"
+                elif "なくちゃいけない" in compound_surface or "なくちゃならない" in compound_surface:
+                    fallback_summary = "must; have to (casual)"
+                elif "なければならない" in compound_surface or "なければいけない" in compound_surface:
+                    fallback_summary = "must; have to"
+                elif "ないといけない" in compound_surface:
+                    fallback_summary = "must; have to"
+                elif "てはいけない" in compound_surface or "ちゃいけない" in compound_surface:
+                    fallback_summary = "must not; may not"
+                elif "てもいい" in compound_surface:
+                    fallback_summary = "may; it's okay to"
+                elif "ている" in compound_surface or "てる" in compound_surface:
+                    fallback_summary = "progressive/resultative"
+                elif "てしまう" in compound_surface or "ちゃう" in compound_surface or "ちゃった" in compound_surface:
+                    fallback_summary = "completive (end up doing)"
+                elif "てみる" in compound_surface:
+                    fallback_summary = "try doing"
+                elif "ておく" in compound_surface or "とく" in compound_surface:
+                    fallback_summary = "do in advance"
+                
+                if fallback_summary:
+                    conjugation_info = ConjugationInfo(
+                        chain=[],
+                        summary=fallback_summary,
+                        translation_hint=fallback_summary,
+                    )
         
         phrases.append(PhraseToken(
             surface=compound_surface,
