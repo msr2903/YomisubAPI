@@ -748,6 +748,33 @@ def _conjugate_auxiliary(
                 case _:
                     raise ValueError(f"Unhandled conjugation for {aux}: {conj}")
 
+        case Auxiliary.HAJIMERU:
+            # Masu-stem + hajimeru (Ichidan)
+            base = conjugate(verb, Conjugation.CONJUNCTIVE, type2)[0]
+            suffixes = ["はじめる", "始める"]
+            results = []
+            for suffix in suffixes:
+                results.extend(conjugate(base + suffix, conj, type2=True))
+            return results
+
+        case Auxiliary.TSUZUKERU:
+            # Masu-stem + tsuzukeru (Ichidan)
+            base = conjugate(verb, Conjugation.CONJUNCTIVE, type2)[0]
+            suffixes = ["つづける", "続ける"]
+            results = []
+            for suffix in suffixes:
+                results.extend(conjugate(base + suffix, conj, type2=True))
+            return results
+            
+        case Auxiliary.OWARU:
+            # Masu-stem + owaru (Godan)
+            base = conjugate(verb, Conjugation.CONJUNCTIVE, type2)[0]
+            suffixes = ["おわる", "終わる"]
+            results = []
+            for suffix in suffixes:
+                results.extend(conjugate(base + suffix, conj, type2=False))
+            return results
+
         case _:
             raise ValueError(f"Unhandled auxiliary: {aux}")
 
@@ -913,12 +940,14 @@ def deconjugate_verb(
         Auxiliary.TE_IRU, Auxiliary.TE_ARU, Auxiliary.TE_ORU,
         Auxiliary.POTENTIAL, Auxiliary.RERU_RARERU, Auxiliary.SERU_SASERU,
         Auxiliary.SUGIRU, Auxiliary.YASUI, Auxiliary.NIKUI,
+        Auxiliary.HAJIMERU, Auxiliary.OWARU, Auxiliary.TSUZUKERU,
     ]
     depth2_finals = [
         Auxiliary.MASU, Auxiliary.SOUDA_CONJECTURE, Auxiliary.SOUDA_HEARSAY,
         Auxiliary.TE_IRU, Auxiliary.TAI, Auxiliary.NAI, Auxiliary.YARU,
         Auxiliary.MIRU, Auxiliary.OKU, Auxiliary.SHIMAU, Auxiliary.HOSHII,
         Auxiliary.NASAI, Auxiliary.SUGIRU, Auxiliary.YASUI, Auxiliary.NIKUI,
+        Auxiliary.HAJIMERU, Auxiliary.OWARU, Auxiliary.TSUZUKERU,
     ]
     
     for penultimate in penultimates:

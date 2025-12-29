@@ -422,21 +422,9 @@ COMPOUND_PHRASES = {
         ("ところだ", "about to; just did"),
         ("ところだった", "was about to"),
     ],
-    # === はじめ patterns ===
-    "はじめ": [
-        ("はじめる", "start doing"),
-        ("はじめた", "started doing"),
-    ],
-    # === おわり patterns ===
-    "おわり": [
-        ("おわる", "finish doing"),
-        ("おわった", "finished doing"),
-    ],
-    # === つづけ patterns ===
-    "つづけ": [
-        ("つづける", "continue doing"),
-        ("つづけた", "continued doing"),
-    ],
+
+
+
     # === がち patterns ===
     "がち": [
         ("がちだ", "tend to; prone to"),

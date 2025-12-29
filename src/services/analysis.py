@@ -673,12 +673,37 @@ def deconjugate_word(word: str, dictionary_form: str | None = None, word_type: s
             original_dict_form = dict_form
             if detected_type == "auto" and main_pos == "名詞":
                 # If we have a noun, check if it's a suru verb candidate
-                # We can check JMDict or just optimistically try "term+suru" if it fails
                 details = jmdict.lookup_details(dict_form)
                 if details and "Suru verb" in details.get("tags", []):
-                    # It's a suru verb noun, convert to verb form for conjugation
                     dict_form += "する"
                     detected_type = "verb"
+                
+                # Check if it's a Verb Stem acting as a Noun in a compound
+                # e.g. 読み始める -> yomi (Noun) + hajimeru
+                elif len(word) > len(dict_form):
+                    stem = dict_form
+                    candidates = []
+                    godan_map = {'き': 'く', 'し': 'す', 'ち': 'つ', 'に': 'ぬ', 'ひ': 'ふ', 'み': 'む', 'り': 'る', 'ぎ': 'ぐ', 'び': 'ぶ'}
+                    if stem and stem[-1] in godan_map:
+                         candidates.append(stem[:-1] + godan_map[stem[-1]])
+                    candidates.append(stem + "る")
+                    
+                    for cand in candidates:
+                         # Verify candidate is a real verb
+                         d = jmdict.lookup_details(cand)
+                         # Loose check for tags (list or None)
+                         tags = str(d.get("tags", [])) if d else ""
+                         if d and ("Verb" in tags or "verb" in tags):
+                             # Try deconjugation to see if this candidate explains the word
+                             try:
+                                 # We specifically check if this verb + ANY valid suffix matches 'word'
+                                 test_hits = deconjugate_verb(word, cand, max_aux_depth=2)
+                                 if test_hits:
+                                      dict_form = cand
+                                      detected_type = "verb"
+                                      break
+                             except Exception:
+                                 pass
     
     if not dict_form:
         raise ValueError("Could not determine dictionary form")

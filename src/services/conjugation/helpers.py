@@ -178,6 +178,12 @@ def generate_translation_hint(
                 hint = f"easy to {hint}"
             case Auxiliary.NIKUI:
                 hint = f"hard to {hint}"
+            case Auxiliary.HAJIMERU:
+                hint = f"start {hint}ing"
+            case Auxiliary.OWARU:
+                hint = f"finish {hint}ing"
+            case Auxiliary.TSUZUKERU:
+                hint = f"continue {hint}ing"
             case Auxiliary.MASU:
                 pass
             case _:
