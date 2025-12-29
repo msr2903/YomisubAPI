@@ -40,15 +40,8 @@ from .helpers import (
     can_attach_morpheme,
 )
 
-# Import analysis functions from the new analysis module
-from services.analysis import (
-    analyze_text,
-    analyze_simple,
-    analyze_full,
-    deconjugate_word,
-    conjugate_word,
-    tokenize_raw,
-)
+# Analysis functions have been moved to services.analysis to avoid circular imports
+
 
 # Re-export enums from verb module for convenience
 from services.verb import Conjugation, Auxiliary
@@ -76,14 +69,8 @@ __all__ = [
     "generate_translation_hint",
     "try_deconjugate_verb",
     "can_attach_morpheme",
-    # Analysis functions
-    "analyze_text",
-    "analyze_simple",
-    "analyze_full",
-    "deconjugate_word",
-    "conjugate_word",
-    "tokenize_raw",
     # Enums
+
     "Conjugation",
     "Auxiliary",
 ]

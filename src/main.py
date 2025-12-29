@@ -20,7 +20,7 @@ from models import (
     ConjugateResponse,
 )
 from services.analyzer import JapaneseAnalyzer
-from services.conjugation import (
+from services.analysis import (
     analyze_text,
     analyze_simple,
     analyze_full,

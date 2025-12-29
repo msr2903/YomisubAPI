@@ -3,9 +3,12 @@
 from lemminflect import getInflection
 
 from services.verb import Conjugation, Auxiliary, deconjugate_verb
+from services.adjective import AdjConjugation
 from models import ConjugationLayer, ConjugationInfo
 
 from .data import AUXILIARY_DESCRIPTIONS, CONJUGATION_DESCRIPTIONS
+from .phrases import match_phrase_suffix
+from services.adjective import deconjugate_adjective, identify_adjective_type
 
 
 def get_auxiliary_info(aux: Auxiliary) -> tuple[str, str]:
@@ -170,9 +173,14 @@ def generate_translation_hint(
                 pass
     
     match conjugation:
+        case Conjugation.NEGATIVE | Conjugation.ZU | Conjugation.NU:
+             if hint.startswith("can "):
+                 hint = hint.replace("can ", "cannot ")
+             else:
+                 hint = f"not {hint}"
         case Conjugation.TA:
             if hint.endswith("ing"):
-                pass  # Keep -ing form for progressive
+                pass  # Keep -ing form for processing
             elif "can " in hint and "not" in hint:
                 # Potential + negative + past: "couldn't eat" (not "didn't eat")
                 verb = hint.replace("not ", "").replace("can ", "")
@@ -205,6 +213,52 @@ def generate_translation_hint(
     return hint
 
 
+def generate_adjective_hint(
+    base_meaning: str,
+    conjugation: AdjConjugation,
+) -> str:
+    """Generate a natural English translation hint for adjectives."""
+    if not base_meaning:
+        return ""
+    
+    # Clean up meaning (take first one, remove "to ")
+    hint = base_meaning.split(";")[0].split(",")[0].strip()
+    if hint.startswith("to "):
+        hint = hint[3:]
+    
+    match conjugation:
+        case AdjConjugation.PRESENT:
+            hint = f"is {hint}"
+        case AdjConjugation.PRENOMINAL:
+            pass # "high" (attributive)
+        case AdjConjugation.NEGATIVE:
+            hint = f"is not {hint}"
+        case AdjConjugation.PAST:
+            hint = f"was {hint}"
+        case AdjConjugation.NEGATIVE_PAST:
+            hint = f"was not {hint}"
+        case AdjConjugation.CONJUNCTIVE_TE:
+            hint = f"is {hint} and..."
+        case AdjConjugation.ADVERBIAL:
+            hint = f"{hint}ly" # This is rough, e.g. "quietly", but "high" -> "highly"?
+        case AdjConjugation.CONDITIONAL:
+            hint = f"if {hint}"
+        case AdjConjugation.TARA_CONDITIONAL:
+            hint = f"if was {hint}"
+        case AdjConjugation.TARI:
+            hint = f"was {hint} and..."
+        case AdjConjugation.NOUN:
+            hint = f"{hint}ness" # rough
+        case AdjConjugation.STEM_SOU:
+            hint = f"looks {hint}"
+        case AdjConjugation.STEM_NEGATIVE_SOU:
+            hint = f"doesn't look {hint}"
+        case _:
+            pass
+            
+    return hint
+
+
 def try_deconjugate_verb(
     surface: str,
     base_form: str,
@@ -214,6 +268,33 @@ def try_deconjugate_verb(
     """Try to deconjugate a verb and return ConjugationInfo."""
     if surface == base_form:
         return None
+    
+    # Check compound phrases first (e.g. nakerebanarimasen -> must)
+    phrase_match = match_phrase_suffix(surface)
+    if phrase_match:
+        suffix, phrase_meaning, stem = phrase_match
+        # Create a phrase conjugation info
+        main_meaning = meaning.split(";")[0].split(",")[0].strip()
+        if main_meaning.startswith("to "): main_meaning = main_meaning[3:]
+        
+        # Format: "must eat", "want someone to eat"
+        # phrase_meaning: "must; have to"
+        clean_phrase = phrase_meaning.split(";")[0].strip()
+        
+        # Heuristic translation hint construction
+        if "{verb}" in clean_phrase:
+            hint = clean_phrase.format(verb=main_meaning)
+        else:
+            hint = f"{clean_phrase} {main_meaning}"
+            
+        info = ConjugationInfo(
+            chain=[ConjugationLayer(
+                form="", type="PHRASE", english=clean_phrase, meaning=phrase_meaning
+            )],
+            summary=clean_phrase,
+            translation_hint=hint,
+        )
+        return info
     
     try:
         results = deconjugate_verb(surface, base_form, type2=type2, max_aux_depth=2)
@@ -225,6 +306,53 @@ def try_deconjugate_verb(
     except Exception:
         pass
     
+    return None
+
+
+def try_deconjugate_adjective(
+    surface: str,
+    base_form: str,
+    meaning: str = "",
+) -> ConjugationInfo | None:
+    """Try to deconjugate an adjective."""
+    if surface == base_form:
+        return None
+        
+    try:
+        # Determine strict i-adj vs na-adj logic?
+        # We can try both or use identify_adjective_type.
+        # analysis.py knows the POS (形容詞 vs 形状詞), but here we might just have strings.
+        # But wait, try_deconjugate_adjective is called from analysis.py which knows POS.
+        # We should probably pass is_i_adjective.
+        # But if we don't, we can guess.
+        
+        # Heuristic guess
+        is_i = identify_adjective_type(base_form) == "i"
+        
+        results = deconjugate_adjective(surface, base_form, is_i_adjective=is_i)
+        if not results and not is_i:
+             # Try i-adj just in case (some na-adjectives act like i-adj like kirei?)
+             # No, kirei is na-adj ending in i.
+             pass
+             
+        if results:
+            best = results[0]
+            conj_layer = ConjugationLayer(
+                form="",
+                type=best.conjugation.name,
+                english=best.conjugation.name.replace("_", " ").lower(),
+                meaning=""
+            )
+            hint = generate_adjective_hint(meaning, best.conjugation)
+            return ConjugationInfo(
+                chain=[conj_layer],
+                summary=best.conjugation.name.replace("_", " ").lower(),
+                translation_hint=hint
+            )
+            
+    except Exception:
+        pass
+        
     return None
 
 

@@ -173,8 +173,12 @@ def _conjugate_type1(verb: str, conj: Conjugation) -> list[str]:
         List of conjugated forms
     """
     # Handle special verbs first
-    if verb == "する":
-        return _conjugate_suru(conj)
+    if verb.endswith("する"):
+        prefix = verb[:-2]
+        return [prefix + s for s in _conjugate_suru(conj)]
+    if verb.endswith("ずる"):
+        # Map old zuru forms (信ずる) to ichidan jiru (信じる)
+        return _conjugate_type2(verb[:-2] + "じる", conj)
     if verb in ("くる", "来る"):
         return _conjugate_kuru(verb, conj)
     if verb == "だ":
@@ -238,8 +242,11 @@ def _conjugate_type2(verb: str, conj: Conjugation) -> list[str]:
         List of conjugated forms
     """
     # Check for special verbs
-    if verb == "する":
-        return _conjugate_suru(conj)
+    if verb.endswith("する"):
+        prefix = verb[:-2]
+        return [prefix + s for s in _conjugate_suru(conj)]
+    if verb.endswith("ずる"):
+         return _conjugate_type2(verb[:-2] + "じる", conj)
     if verb in ("くる", "来る"):
         return _conjugate_kuru(verb, conj)
     if verb == "だ":
@@ -279,27 +286,33 @@ def _conjugate_kuru(verb: str, conj: Conjugation) -> list[str]:
     is_kanji = verb.startswith("来")
     prefix = "来" if is_kanji else ""
     
+    is_kanji = verb.startswith("来")
+    prefix = "来" if is_kanji else ""
+    
+    # If using Kanji (来), the reading changes but the kanji stays '来'
+    # except for forms where it's explicilty Hiragana suffix
+    
     match conj:
         case Conjugation.NEGATIVE | Conjugation.ZU | Conjugation.NU:
-            return [prefix + "こ"]
+            return [prefix] if is_kanji else ["こ"]
         case Conjugation.CONJUNCTIVE:
-            return [prefix + "き"]
+            return [prefix] if is_kanji else ["き"]
         case Conjugation.DICTIONARY:
-            return [prefix + "くる"]
+            return [verb] # 来る or くる
         case Conjugation.CONDITIONAL:
-            return [prefix + "くれ"]
+            return [prefix + "れ"] if is_kanji else ["くれ"]
         case Conjugation.IMPERATIVE:
-            return [prefix + "こい"]
+            return [prefix + "い"] if is_kanji else ["こい"]
         case Conjugation.VOLITIONAL:
-            return [prefix + "こよう"]
+            return [prefix + "よう"] if is_kanji else ["こよう"]
         case Conjugation.TE:
-            return [prefix + "きて"]
+            return [prefix + "て"] if is_kanji else ["きて"]
         case Conjugation.TA:
-            return [prefix + "きた"]
+            return [prefix + "た"] if is_kanji else ["きた"]
         case Conjugation.TARA:
-            return [prefix + "きたら"]
+            return [prefix + "たら"] if is_kanji else ["きたら"]
         case Conjugation.TARI:
-            return [prefix + "きたり"]
+            return [prefix + "たり"] if is_kanji else ["きたり"]
         case _:
             raise ValueError(f"Unhandled conjugation for kuru: {conj}")
 
@@ -848,7 +861,7 @@ def deconjugate_verb(
     depth2_finals = [
         Auxiliary.MASU, Auxiliary.SOUDA_CONJECTURE, Auxiliary.SOUDA_HEARSAY,
         Auxiliary.TE_IRU, Auxiliary.TAI, Auxiliary.NAI, Auxiliary.YARU,
-        Auxiliary.MIRU, Auxiliary.OKU, Auxiliary.SHIMAU,  # Added these for chains like passive+miru
+        Auxiliary.MIRU, Auxiliary.OKU, Auxiliary.SHIMAU, Auxiliary.HOSHII,
     ]
     
     for penultimate in penultimates:
@@ -870,8 +883,8 @@ def deconjugate_verb(
         return hits
     
     # Depth 3: Three auxiliaries
-    antepenultimates = [Auxiliary.SERU_SASERU, Auxiliary.RERU_RARERU, Auxiliary.ITADAKU]
-    depth3_finals = [Auxiliary.MASU]
+    antepenultimates = [Auxiliary.SERU_SASERU, Auxiliary.RERU_RARERU, Auxiliary.ITADAKU, Auxiliary.MIRU]
+    depth3_finals = [Auxiliary.MASU, Auxiliary.SOUDA_CONJECTURE]
     
     for ante in antepenultimates:
         for penultimate in penultimates:

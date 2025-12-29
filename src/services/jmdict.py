@@ -466,6 +466,7 @@ class JMDictionary:
             "vi": "Intransitive",
             "uk": "Usually Kana",
             "ctr": "Counter",
+            "vs": "Suru verb",
         }
         for pos in target_sense.get("partOfSpeech", []):
             if pos in POS_TAGS:

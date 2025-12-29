@@ -52,6 +52,9 @@ ENDING_CONJUGATIONS = {
         ("なった", " (past)"),
         ("ならない", " (negative)"),
         ("なりません", " (polite negative)"),
+        ("なりました", " (polite past)"),
+        ("なくて", " (te-form)"),
+        ("なって", " (te-form)"),
     ],
     # する (irregular) conjugations
     "する": [
@@ -96,6 +99,7 @@ PHRASE_BASES = [
     ("ことが", "ある", "sometimes; have experienced"),
     ("ことに", "する", "decide to"),
     ("ことに", "なる", "it's been decided; will end up"),
+    ("そうに", "なる", "almost; close to doing"),
     ("ことは", "ない", "no need to; never happens"),
     
     # はず patterns
@@ -214,6 +218,10 @@ COMPOUND_PHRASES = {
         ("てたまらない", "unbearably; extremely"),
         ("てならない", "can't help but feel"),
         ("てばかりいる", "do nothing but"),
+        ("てほしい", "want someone to do"),
+        ("てほしいです", "want someone to do (polite)"),
+        ("てほしくない", "don't want someone to do"),
+        ("てほしかった", "wanted someone to do"),
     ],
     # === ては patterns ===
     "ては": [
@@ -299,6 +307,9 @@ COMPOUND_PHRASES = {
         ("ようとする", "try to; be about to"),
         ("ようがない", "no way to; cannot"),
         ("ようとしない", "refuses to; won't try to"),
+    ],
+    "そ": [
+        ("そうになる", "almost; close to doing"),
     ],
     # === ざ patterns ===
     "ざ": [
@@ -629,4 +640,27 @@ def try_match_compound_phrase(morphemes: list, start_idx: int) -> tuple[str, str
                 consumed += 1
             return (phrase, meaning, consumed)
     
+    return None
+
+
+def match_phrase_suffix(text: str) -> tuple[str, str, str] | None:
+    """
+    Check if text ends with a known compound phrase.
+    Returns (suffix_matched, meaning, remaining_stem) or None.
+    """
+    # Iterate all phrases (could be optimized)
+    # We prioritize longer matches
+    
+    # Flatten all phrases
+    all_phrases = []
+    for key, list_ in COMPOUND_PHRASES.items():
+        all_phrases.extend(list_)
+        
+    # Sort by length descending
+    all_phrases.sort(key=lambda x: -len(x[0]))
+    
+    for phrase, meaning in all_phrases:
+        if text.endswith(phrase) and len(text) > len(phrase):
+            return (phrase, meaning, text[:-len(phrase)])
+            
     return None

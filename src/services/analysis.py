@@ -40,25 +40,30 @@ from models import (
 )
 
 # Import shared data and helpers from the conjugation package
-from services.conjugation import (
-    # Data constants
+# Import shared data and helpers from the conjugation package submodules
+# Avoid importing from services.conjugation directly to prevent circular imports
+from services.conjugation.data import (
     AUXILIARY_DESCRIPTIONS,
     CONJUGATION_DESCRIPTIONS,
     GRAMMAR_MAP,
     POS_MAP,
     POS_WHITELIST,
     SKIP_POS,
-    # Phrase matching
+)
+from services.conjugation.phrases import (
     COMPOUND_PHRASES,
     try_match_compound_phrase,
-    # Helper functions
+)
+from services.conjugation.helpers import (
     get_auxiliary_info,
     get_conjugation_info,
     is_verb_type2,
     is_hiragana,
     build_conjugation_info,
     generate_translation_hint,
+    generate_adjective_hint,
     try_deconjugate_verb,
+    try_deconjugate_adjective,
     can_attach_morpheme,
 )
 
@@ -81,6 +86,38 @@ def analyze_text(text: str) -> AnalyzeResponse:
     i = 0
     
     while i < len(morphemes):
+        # Check for compound grammar phrases first (e.g. nakereba narimasen -> must)
+        phrase_match = try_match_compound_phrase(morphemes, i)
+        if phrase_match:
+            phrase_text, phrase_meaning, consumed_count = phrase_match
+            
+            # Construct phrase reading from consumed tokens
+            phrase_reading = ""
+            for k in range(consumed_count):
+                phrase_reading += jaconv.kata2hira(morphemes[i+k].reading_form())
+
+            # Format translation hint
+            # "must; have to" -> "must"
+            clean_meaning = phrase_meaning.split(";")[0].strip()
+            
+            # Create a Phrase Token
+            response_tokens.append(TokenResponse(
+                word=phrase_text,
+                base=phrase_text,
+                reading=phrase_reading,
+                pos="Phrase",
+                meaning=phrase_meaning,
+                tags=["Grammar"],
+                components=[], 
+                conjugation=ConjugationInfo(
+                    chain=[ConjugationLayer(type="PHRASE", form="", english=clean_meaning, meaning=phrase_meaning)],
+                    summary=clean_meaning,
+                    translation_hint=clean_meaning
+                )
+            ))
+            i += consumed_count
+            continue
+            
         m = morphemes[i]
         pos_tuple = m.part_of_speech()
         main_pos = pos_tuple[0] if pos_tuple else ""
@@ -123,7 +160,10 @@ def analyze_text(text: str) -> AnalyzeResponse:
                 next_main = next_pos[0] if next_pos else ""
                 next_sub = next_pos[1] if len(next_pos) > 1 else ""
                 
-                if can_attach_morpheme(next_main, next_sub, next_m.surface()):
+                # Allow SOU (conjecture) which Sudachi labels as Shape/Na-adj
+                is_sou = (next_m.dictionary_form() == "そう" and next_main == "形状詞")
+                
+                if can_attach_morpheme(next_main, next_sub, next_m.surface()) or is_sou:
                     ns, nr = next_m.surface(), jaconv.kata2hira(next_m.reading_form())
                     nb, np = next_m.dictionary_form(), POS_MAP.get(next_main, next_main)
                     nm = GRAMMAR_MAP.get(nb) or GRAMMAR_MAP.get(ns)
@@ -144,7 +184,7 @@ def analyze_text(text: str) -> AnalyzeResponse:
                 ns = next_m.surface()
                 
                 can_attach = (
-                    next_main in {"助動詞", "形容詞"} or
+                    next_main in {"助動詞"} or
                     ns in {"じゃ", "では", "で"} or
                     (ns == "は" and prev_was_de)
                 )
@@ -161,6 +201,30 @@ def analyze_text(text: str) -> AnalyzeResponse:
                 else:
                     break
         
+        # Group i-adjectives with auxiliaries
+        elif main_pos == "形容詞":
+            while j < len(morphemes):
+                next_m = morphemes[j]
+                next_pos = next_m.part_of_speech()
+                next_main = next_pos[0] if next_pos else ""
+                ns = next_m.surface()
+                
+                can_attach = (
+                    next_main in {"助動詞"} or
+                    (next_main == "助詞" and ns in {"て", "で", "ば"})
+                )
+                
+                if can_attach:
+                    nr = jaconv.kata2hira(next_m.reading_form())
+                    nb, np = next_m.dictionary_form(), POS_MAP.get(next_main, next_main)
+                    nm = GRAMMAR_MAP.get(nb) or GRAMMAR_MAP.get(ns)
+                    components.append(TokenComponent(surface=ns, base=nb, reading=nr, pos=np, meaning=nm))
+                    compound_surface += ns
+                    compound_reading += nr
+                    j += 1
+                else:
+                    break
+        
         if base_form in seen_bases:
             i = j
             continue
@@ -171,6 +235,8 @@ def analyze_text(text: str) -> AnalyzeResponse:
         if main_pos == "動詞" and compound_surface != base_form:
             type2 = is_verb_type2(pos_tuple)
             conjugation_info = try_deconjugate_verb(compound_surface, base_form, type2, meaning or "")
+        elif main_pos == "形容詞" and compound_surface != base_form:
+            conjugation_info = try_deconjugate_adjective(compound_surface, base_form, meaning or "")
         
         if components:
             components.insert(0, TokenComponent(
@@ -555,15 +621,34 @@ def deconjugate_word(word: str, dictionary_form: str | None = None, word_type: s
     jmdict = analyzer._jmdict
     
     dict_form = dictionary_form
+    original_dict_form = dictionary_form
     detected_type = word_type
     
     if not dict_form:
         tokenizer = analyzer._tokenizer
-        morphemes = list(tokenizer.tokenize(word, SplitMode.A))
+        # Use SplitMode.C to catch suru-verbs and compounds
+        morphemes = list(tokenizer.tokenize(word, SplitMode.C))
         if morphemes:
             dict_form = morphemes[0].dictionary_form()
-            main_pos = morphemes[0].part_of_speech()[0] if morphemes[0].part_of_speech() else ""
-            detected_type = "verb" if main_pos == "動詞" else "adjective" if main_pos == "形容詞" else detected_type
+            pos = morphemes[0].part_of_speech()
+            main_pos = pos[0] if pos else ""
+            
+            if main_pos == "動詞":
+                detected_type = "verb"
+            elif main_pos == "形容詞" or main_pos == "形状詞":
+                # 形状詞 (keijoushi) = Adjectival Noun (Na-adjective)
+                detected_type = "adjective"
+            
+            # Check for suru-verb if it's a noun
+            original_dict_form = dict_form
+            if detected_type == "auto" and main_pos == "名詞":
+                # If we have a noun, check if it's a suru verb candidate
+                # We can check JMDict or just optimistically try "term+suru" if it fails
+                details = jmdict.lookup_details(dict_form)
+                if details and "Suru verb" in details.get("tags", []):
+                    # It's a suru verb noun, convert to verb form for conjugation
+                    dict_form += "する"
+                    detected_type = "verb"
     
     if not dict_form:
         raise ValueError("Could not determine dictionary form")
@@ -571,18 +656,65 @@ def deconjugate_word(word: str, dictionary_form: str | None = None, word_type: s
     # Get reading for accurate lookup
     dict_reading = None
     if jmdict.is_loaded:
-        morphemes = list(analyzer._tokenizer.tokenize(dict_form, SplitMode.C))
-        if morphemes:
-            dict_reading = jaconv.kata2hira(morphemes[0].reading_form())
+        base_tokens = list(analyzer._tokenizer.tokenize(original_dict_form, SplitMode.C))
+        if base_tokens:
+            base_r = jaconv.kata2hira(base_tokens[0].reading_form())
+            # Validate reading consistency for verbs/adjectives to avoid homonym errors
+            # e.g. "好かれる" -> "suka" vs "好く" -> "yoku" (wrong)
+            if morphemes:
+                 surface_r = jaconv.kata2hira(morphemes[0].reading_form())
+                 if surface_r and base_r:
+                     # Check first character consistency (heuristic)
+                     # Allow d/j mismatch for da/ja, but s/y is definitely wrong
+                     match_start = (surface_r[0] == base_r[0])
+                     if not match_start:
+                         # Exceptions for irregulars
+                         # da -> ja/de/na (d/j/n)
+                         if dict_form == "だ" and surface_r[0] in "じでな": match_start = True
+                         # iku -> itta (i/i) - ok
+                         # kuru -> ko (k/k) - ok
+                         # suru -> shi (s/s) - ok
+                         
+                     if match_start:
+                         dict_reading = base_r
+                     elif main_pos == "動詞" and "五段" in morphemes[0].part_of_speech()[4]:
+                         # Mismatch detected (e.g. Suka vs Yoku).
+                         # Try to infer correct base reading from surface reading (Godan only)
+                         # Simple mapping of last kana to u-row
+                         last = surface_r[-1]
+                         stem = surface_r[:-1]
+                         
+                         vowel_map = {
+                             "か": "く", "き": "く", "く": "く", "け": "く", "こ": "く",
+                             "が": "ぐ", "ぎ": "ぐ", "ぐ": "ぐ", "げ": "ぐ", "ご": "ぐ",
+                             "さ": "す", "し": "す", "す": "す", "せ": "す", "そ": "す",
+                             "た": "つ", "ち": "つ", "つ": "つ", "て": "つ", "と": "つ",
+                             "な": "ぬ", "に": "ぬ", "ぬ": "ぬ", "ね": "ぬ", "の": "ぬ",
+                             "は": "ふ", "ひ": "ふ", "ふ": "ふ", "へ": "ふ", "ほ": "ふ",
+                             "ば": "ぶ", "び": "ぶ", "ぶ": "ぶ", "べ": "ぶ", "ぼ": "ぶ",
+                             "ま": "む", "み": "む", "む": "む", "め": "む", "も": "む",
+                             "ら": "る", "り": "る", "る": "る", "れ": "る", "ろ": "る",
+                             # Wa row (for verbs ending in u) - tricky (wa, i, u, e, o -> u)
+                             "わ": "う", "い": "う", "う": "う", "え": "う", "お": "う",
+                         }
+                         if last in vowel_map:
+                             # Check if inferred reading starts correctly
+                             inferred = stem + vowel_map[last]
+                             if inferred[0] == surface_r[0]:
+                                 dict_reading = inferred
+            else:
+                dict_reading = base_r
     
-    meaning = jmdict.lookup(dict_form, dict_reading)
+    meaning = jmdict.lookup(original_dict_form, dict_reading)
     layers, alternatives = [], []
     full_breakdown, natural_english = "", ""
     
     if detected_type in {"verb", "auto"}:
         results = deconjugate_verb(word, dict_form, type2=True, max_aux_depth=3)
+        verb_is_type2 = True
         if not results:
             results = deconjugate_verb(word, dict_form, type2=False, max_aux_depth=3)
+            verb_is_type2 = False
         
         if results:
             best = results[0]
@@ -598,7 +730,7 @@ def deconjugate_word(word: str, dictionary_form: str | None = None, word_type: s
             if best.conjugation != Conjugation.DICTIONARY:
                 parts.append(conj_short)
             full_breakdown = " + ".join(parts) if parts else "dictionary form"
-            natural_english = generate_translation_hint(meaning or "", best.auxiliaries, best.conjugation)
+            natural_english = generate_translation_hint(meaning or "", best.auxiliaries, best.conjugation, type2=verb_is_type2)
             
             for alt in results[1:3]:
                 alt_parts = [get_auxiliary_info(a)[0] for a in alt.auxiliaries]
@@ -622,6 +754,7 @@ def deconjugate_word(word: str, dictionary_form: str | None = None, word_type: s
             conj_name = best.conjugation.name.replace("_", " ").lower()
             layers.append(ConjugationLayer(form="", type=best.conjugation.name, english=conj_name, meaning=""))
             full_breakdown = conj_name
+            natural_english = generate_adjective_hint(meaning or "", best.conjugation)
             detected_type = "adjective"
     
     return DeconjugateResponse(
