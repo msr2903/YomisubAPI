@@ -748,13 +748,28 @@ def deconjugate_word(word: str, dictionary_form: str | None = None, word_type: s
         
         if results:
             best = results[0]
+            current_auxs = []
             for aux in best.auxiliaries:
+                current_auxs.append(aux)
+                # Generate dictionary form up to this point
+                try:
+                    forms = conjugate_auxiliaries(original_dict_form, current_auxs, Conjugation.DICTIONARY, type2=verb_is_type2)
+                    step_form = forms[0] if forms else ""
+                except Exception:
+                    step_form = ""
+                
                 short_name, aux_meaning = get_auxiliary_info(aux)
-                layers.append(ConjugationLayer(form="", type=aux.name, english=short_name, meaning=aux_meaning))
+                layers.append(ConjugationLayer(form=step_form, type=aux.name, english=short_name, meaning=aux_meaning))
             
             conj_short, conj_meaning = get_conjugation_info(best.conjugation)
             if best.conjugation != Conjugation.DICTIONARY:
-                layers.append(ConjugationLayer(form="", type=best.conjugation.name, english=conj_short, meaning=conj_meaning))
+                # Generate final form
+                try:
+                    final_forms = conjugate_auxiliaries(original_dict_form, best.auxiliaries, best.conjugation, type2=verb_is_type2)
+                    final_form = final_forms[0] if final_forms else word
+                except Exception:
+                    final_form = word
+                layers.append(ConjugationLayer(form=final_form, type=best.conjugation.name, english=conj_short, meaning=conj_meaning))
             
             parts = [get_auxiliary_info(a)[0] for a in best.auxiliaries]
             if best.conjugation != Conjugation.DICTIONARY:
