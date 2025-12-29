@@ -145,6 +145,9 @@ def generate_translation_hint(
     
     for aux in auxiliaries:
         match aux:
+            case Auxiliary.POTENTIAL:
+                hint = f"can {hint}"
+                has_potential = True
             case Auxiliary.RERU_RARERU:
                 # For godan verbs: RERU_RARERU is passive only (potential uses え-stem + る)
                 # For ichidan verbs: RERU_RARERU is ambiguous (can be passive or potential)

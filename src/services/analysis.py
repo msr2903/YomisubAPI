@@ -143,6 +143,20 @@ def analyze_text(text: str) -> AnalyzeResponse:
         meaning = details["meaning"] if details else None
         tags = details["tags"] if details else []
         
+        # Check for "Ra-nuki" (colloquial potential) if meaning not found
+        # e.g. 食べれる (tabereru) -> 食べる (taberu)
+        if not meaning and main_pos == "動詞" and base_form.endswith("れる") and len(base_form) > 2:
+            potential_base = base_form[:-2] + "る"
+            # Try lookup (without reading restriction mostly safe here)
+            ra_details = jmdict.lookup_details(potential_base) 
+            if ra_details:
+                base_form = potential_base
+                meaning = ra_details["meaning"]
+                tags = ra_details["tags"]
+                # Update reading if possible (heuristic)
+                if lookup_reading and lookup_reading.endswith("れる"):
+                    lookup_reading = lookup_reading[:-2] + "る"
+        
         if not meaning:
             meaning = GRAMMAR_MAP.get(base_form) or GRAMMAR_MAP.get(surface)
         
@@ -635,6 +649,16 @@ def deconjugate_word(word: str, dictionary_form: str | None = None, word_type: s
             
             if main_pos == "動詞":
                 detected_type = "verb"
+                
+                # Check for Ra-nuki potential (食べれる -> 食べる)
+                # Sudachi has 食べれる in its dictionary, but JMDict does not
+                if dict_form.endswith("れる") and len(dict_form) > 2:
+                    potential_base = dict_form[:-2] + "る"
+                    base_details = jmdict.lookup_details(potential_base)
+                    if base_details and base_details.get("meaning"):
+                        # It's a Ra-nuki form, normalize to actual base verb
+                        dict_form = potential_base
+                        
             elif main_pos == "形容詞" or main_pos == "形状詞":
                 # 形状詞 (keijoushi) = Adjectival Noun (Na-adjective)
                 detected_type = "adjective"

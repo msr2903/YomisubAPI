@@ -29,6 +29,7 @@ def run_tests():
         
         # Standard Ichidan
         ("信じられない", "verb", "can't believe"), # potential + negative
+        ("食べれません", "verb", "cannot eat"),  # Ra-nuki potential
         
         # Irregular
         ("勉強した", "verb", "studied"), # suru verb

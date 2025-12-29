@@ -620,10 +620,17 @@ def _conjugate_auxiliary(
             elif verb == "する":
                 new_verb = "される"
             elif type2:
+                # Standard: Taberareru
                 new_verb = _conjugate_type2(verb, Conjugation.NEGATIVE)[0] + "られる"
+                res = conjugate(new_verb, conj, type2=True)
+                
+                # Ra-nuki (colloquial): Tabereru
+                ranuki_verb = _conjugate_type2(verb, Conjugation.NEGATIVE)[0] + "れる"
+                res.extend(conjugate(ranuki_verb, conj, type2=True))
+                return res
             else:
                 new_verb = _conjugate_type1(verb, Conjugation.NEGATIVE)[0] + "れる"
-            return conjugate(new_verb, conj, type2=True)
+                return conjugate(new_verb, conj, type2=True)
         
         case Auxiliary.CAUSATIVE_PASSIVE:
             causative = _conjugate_auxiliary(verb, Auxiliary.SERU_SASERU, Conjugation.NEGATIVE, type2)[0]
@@ -765,7 +772,9 @@ def conjugate_auxiliaries(
         else:
             new_verbs = []
             for v in verbs:
-                new_verbs.extend(_conjugate_auxiliary(v, aux, conj, current_type2))
+                aux_result = _conjugate_auxiliary(v, aux, conj, current_type2)
+                if aux_result:
+                    new_verbs.extend(aux_result)
             verbs = new_verbs
         
         # Update type2 for next iteration
@@ -836,7 +845,7 @@ def deconjugate_verb(
         for conj in Conjugation:
             try:
                 result = _conjugate_auxiliary(dictionary_form, aux, conj, type2)
-                if conjugated in result:
+                if result and conjugated in result:
                     hits.append(VerbDeconjugated(
                         auxiliaries=(aux,),
                         conjugation=conj,
@@ -870,7 +879,7 @@ def deconjugate_verb(
                 try:
                     auxs = [penultimate, final]
                     result = conjugate_auxiliaries(dictionary_form, auxs, conj, type2)
-                    if conjugated in result:
+                    if result and conjugated in result:
                         hits.append(VerbDeconjugated(
                             auxiliaries=tuple(auxs),
                             conjugation=conj,
@@ -893,7 +902,7 @@ def deconjugate_verb(
                     try:
                         auxs = [ante, penultimate, final]
                         result = conjugate_auxiliaries(dictionary_form, auxs, conj, type2)
-                        if conjugated in result:
+                        if result and conjugated in result:
                             hits.append(VerbDeconjugated(
                                 auxiliaries=tuple(auxs),
                                 conjugation=conj,
