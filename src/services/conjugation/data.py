@@ -38,6 +38,8 @@ AUXILIARY_DESCRIPTIONS: dict[str, tuple[str, str]] = {
     "HAJIMERU": ("inchoative", "start doing"),
     "OWARU": ("terminative", "finish doing"),
     "TSUZUKERU": ("continuative", "continue doing"),
+    "DESHOU": ("conjecture", "probably (polite)"),
+    "DAROU": ("conjecture", "probably (plain)"),
     "DASU": ("sudden", "burst into"),
     "GARU": ("appearance", "seems to want"),
     "SOU_APPEARANCE": ("appearance", "looks like"),

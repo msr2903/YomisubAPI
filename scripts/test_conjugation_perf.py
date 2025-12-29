@@ -43,6 +43,8 @@ def run_tests():
         ("読み終わった", "verb", "finished reading"),
         ("飲み続ける", "verb", "continue drinking"),
         ("食べてしまった", "verb", "ended up eating"),
+        ("でしょう", "verb", "probably"),
+        ("だろう", "verb", "probably"),
 
         # Irregular
         ("勉強した", "verb", "studied"), # suru verb

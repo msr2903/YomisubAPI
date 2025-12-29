@@ -12,7 +12,7 @@ analyzer = JapaneseAnalyzer.get_instance()
 tokenizer_obj = analyzer._tokenizer
 mode = SplitMode.C
 
-words = ["読み始める", "読み終わった", "飲み続ける", "読みやすかった"]
+words = ["でしょう", "だろう", "行くでしょう"]
 
 print("Checking Sudachi Tokenization:")
 for w in words:

@@ -760,7 +760,10 @@ def deconjugate_word(word: str, dictionary_form: str | None = None, word_type: s
             else:
                 dict_reading = base_r
     
-    meaning = jmdict.lookup(original_dict_form, dict_reading)
+    if original_dict_form in ("だ", "です"):
+        meaning = "be; is"
+    else:
+        meaning = jmdict.lookup(original_dict_form, dict_reading)
     layers, alternatives = [], []
     full_breakdown, natural_english = "", ""
     

@@ -188,6 +188,8 @@ def generate_translation_hint(
                 hint = f"finish {hint}ing"
             case Auxiliary.TSUZUKERU:
                 hint = f"continue {hint}ing"
+            case Auxiliary.DESHOU | Auxiliary.DAROU:
+                hint = f"probably {hint}"
             case Auxiliary.MASU:
                 pass
             case _:
@@ -226,7 +228,10 @@ def generate_translation_hint(
             else:
                 hint = f"when/if {make_past_tense(hint)}"
         case Conjugation.VOLITIONAL:
-            hint = f"let's {hint}"
+            if hint in ("be", "is", "am", "are"):
+                hint = "probably"
+            else:
+                hint = f"let's {hint}"
         case Conjugation.IMPERATIVE:
             hint = f"{hint}!"
         case _:

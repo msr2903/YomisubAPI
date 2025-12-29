@@ -88,6 +88,8 @@ class Auxiliary(StrEnum):
     # Appearance
     GARU = auto()                # がる - seems (3rd person wanting)
     SOU_APPEARANCE = auto()      # そう - looks like (appearance)
+    DESHOU = auto()              # でしょう - probably (polite)
+    DAROU = auto()               # だろう - probably (plain)
 
 
 # Hiragana vowel lookup table for verb conjugation
@@ -366,6 +368,8 @@ def _conjugate_da(conj: Conjugation) -> list[str]:
             return ["だったら"]
         case Conjugation.TARI:
             return ["だったり"]
+        case Conjugation.VOLITIONAL:
+            return ["だろう"]
         case _:
             raise ValueError(f"Unhandled conjugation for da: {conj}")
 
@@ -385,6 +389,8 @@ def _conjugate_desu(conj: Conjugation) -> list[str]:
             return ["でしたら"]
         case Conjugation.TARI:
             return ["でしたり"]
+        case Conjugation.VOLITIONAL:
+            return ["でしょう"]
         case _:
             raise ValueError(f"Unhandled conjugation for desu: {conj}")
 
@@ -775,6 +781,16 @@ def _conjugate_auxiliary(
                 results.extend(conjugate(base + suffix, conj, type2=False))
             return results
 
+        case Auxiliary.DESHOU:
+            # Dict-form + deshou
+            base = conjugate(verb, Conjugation.DICTIONARY, type2)[0]
+            return [base + "でしょう"]
+
+        case Auxiliary.DAROU:
+            # Dict-form + darou
+            base = conjugate(verb, Conjugation.DICTIONARY, type2)[0]
+            return [base + "だろう"]
+
         case _:
             raise ValueError(f"Unhandled auxiliary: {aux}")
 
@@ -948,6 +964,7 @@ def deconjugate_verb(
         Auxiliary.MIRU, Auxiliary.OKU, Auxiliary.SHIMAU, Auxiliary.HOSHII,
         Auxiliary.NASAI, Auxiliary.SUGIRU, Auxiliary.YASUI, Auxiliary.NIKUI,
         Auxiliary.HAJIMERU, Auxiliary.OWARU, Auxiliary.TSUZUKERU,
+        Auxiliary.DESHOU, Auxiliary.DAROU,
     ]
     
     for penultimate in penultimates:
