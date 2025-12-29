@@ -40,8 +40,8 @@ from .helpers import (
     can_attach_morpheme,
 )
 
-# Import analysis functions from legacy file (will be migrated to analysis.py later)
-from services.conjugation_legacy import (
+# Import analysis functions from the new analysis module
+from services.analysis import (
     analyze_text,
     analyze_simple,
     analyze_full,

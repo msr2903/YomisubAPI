@@ -144,16 +144,16 @@ YomisubAPI/
 │   ├── main.py              # FastAPI routes
 │   ├── models.py            # Pydantic models
 │   └── services/
-│       ├── analyzer.py      # Japanese analyzer (SudachiPy)
+│       ├── analyzer.py      # Japanese analyzer (SudachiPy wrapper)
 │       ├── jmdict.py        # Dictionary lookup (JMDict + JMNedict)
-│       ├── verb.py          # Verb conjugation rules
+│       ├── verb.py          # Verb conjugation engine
 │       ├── adjective.py     # Adjective conjugation
-│       ├── conjugation_legacy.py  # Analysis functions
-│       └── conjugation/     # Modular package
+│       ├── analysis.py      # Analysis API functions (analyze_text, etc.)
+│       └── conjugation/     # Modular conjugation package
 │           ├── __init__.py  # Package exports
 │           ├── data.py      # Constants (GRAMMAR_MAP, POS_MAP)
 │           ├── phrases.py   # Phrase patterns (COMPOUND_PHRASES)
-│           └── helpers.py   # Utility functions
+│           └── helpers.py   # Translation hints & deconjugation helpers
 ├── data/
 │   ├── jmdict-eng.json.gz   # Auto-downloaded (214k entries)
 │   └── jmnedict-eng.json.gz # Auto-downloaded (743k names)

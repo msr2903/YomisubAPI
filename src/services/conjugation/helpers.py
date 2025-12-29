@@ -118,8 +118,18 @@ def generate_translation_hint(
     base_meaning: str,
     auxiliaries: tuple[Auxiliary, ...],
     conjugation: Conjugation,
+    type2: bool = True,
 ) -> str:
-    """Generate a natural English translation hint."""
+    """Generate a natural English translation hint.
+    
+    Args:
+        base_meaning: The dictionary meaning of the verb
+        auxiliaries: Tuple of auxiliaries applied to the verb
+        conjugation: Final conjugation form
+        type2: True for ichidan verbs, False for godan. Affects RERU_RARERU interpretation:
+               - Godan (type2=False): RERU_RARERU is passive only ("is done")
+               - Ichidan (type2=True): RERU_RARERU is ambiguous ("can/is done")
+    """
     if not base_meaning:
         return ""
     
@@ -128,11 +138,20 @@ def generate_translation_hint(
         first_meaning = first_meaning[3:]
     
     hint = first_meaning
+    has_potential = False  # Track if potential was applied
     
     for aux in auxiliaries:
         match aux:
             case Auxiliary.RERU_RARERU:
-                hint = f"can {hint}" if "potential" in AUXILIARY_DESCRIPTIONS[aux.name][0] else f"is {hint}"
+                # For godan verbs: RERU_RARERU is passive only (potential uses え-stem + る)
+                # For ichidan verbs: RERU_RARERU is ambiguous (can be passive or potential)
+                if type2:
+                    # Ichidan: ambiguous, default to potential interpretation
+                    hint = f"can {hint}"
+                    has_potential = True
+                else:
+                    # Godan: passive only
+                    hint = f"is {hint}"
             case Auxiliary.NAI:
                 hint = f"not {hint}"
             case Auxiliary.TAI:
@@ -154,11 +173,16 @@ def generate_translation_hint(
         case Conjugation.TA:
             if hint.endswith("ing"):
                 pass  # Keep -ing form for progressive
+            elif "can " in hint and "not" in hint:
+                # Potential + negative + past: "couldn't eat" (not "didn't eat")
+                verb = hint.replace("not ", "").replace("can ", "")
+                hint = f"couldn't {verb}"
             elif "not" in hint:
-                # Extract verb for proper past tense
+                # Just negative + past: "didn't eat"
                 verb = hint.replace("not ", "").replace("can ", "")
                 hint = f"didn't {verb}"
             elif "can " in hint:
+                # Potential + past: "could eat"
                 hint = f"could {hint.replace('can ', '')}"
             else:
                 hint = make_past_tense(hint)
@@ -196,7 +220,7 @@ def try_deconjugate_verb(
         if results:
             r = results[0]
             info = build_conjugation_info(r.auxiliaries, r.conjugation, meaning)
-            info.translation_hint = generate_translation_hint(meaning, r.auxiliaries, r.conjugation)
+            info.translation_hint = generate_translation_hint(meaning, r.auxiliaries, r.conjugation, type2)
             return info
     except Exception:
         pass
