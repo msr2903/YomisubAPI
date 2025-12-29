@@ -366,21 +366,16 @@ _COMPOSITIONAL_PHRASES = _generate_compound_phrases()
 # Organized by JLPT level patterns
 COMPOUND_PHRASES = {
     # === か patterns ===
+    # Note: かもしれない variants are auto-generated from PHRASE_BASES
     "か": [
-        ("かもしれない", "might; may; possibly"),
-        ("かもしれません", "might; may; possibly (polite)"),
         ("かどうか", "whether or not"),
         ("かのように", "as if; as though"),
     ],
     # === こと patterns (N5-N4) ===
+    # Note: ことができる/ある variants are auto-generated from PHRASE_BASES
     "こと": [
-        ("ことができる", "can; be able to"),
-        ("ことができます", "can (polite)"),
-        ("ことがある", "sometimes; have experienced"),
-        ("ことがあります", "sometimes (polite)"),
         ("ことにする", "decide to"),
         ("ことになる", "it's been decided; will end up"),
-        ("ことはない", "no need to; never happens"),
     ],
     # === な patterns ===
     "な": [
@@ -407,6 +402,7 @@ COMPOUND_PHRASES = {
         ("なくちゃならない", "must; have to (casual)"),
     ],
     # === と patterns ===
+    # Note: とは限らない variants are auto-generated from PHRASE_BASES
     "と": [
         ("といけない", "must (if not...)"),
         ("といけません", "must (polite)"),
@@ -415,7 +411,6 @@ COMPOUND_PHRASES = {
         ("ということだ", "it means that; I heard that"),
         ("というものだ", "that's what ~ is"),
         ("というわけだ", "that's why; so that means"),
-        ("とは限らない", "not necessarily; not always"),
         ("ところだ", "about to; just did"),
         ("ところだった", "was about to"),
     ],
@@ -424,7 +419,6 @@ COMPOUND_PHRASES = {
         ("てはいけない", "must not; may not"),
         ("てはいけません", "must not (polite)"),
         ("てはだめ", "must not (casual)"),
-        ("てもいい", "may; it's okay to"),
         ("てもいいですか", "may I...?"),
         ("ても", "even if; even though"),
         ("てからでないと", "not until after"),
@@ -433,9 +427,8 @@ COMPOUND_PHRASES = {
         ("てばかりいる", "do nothing but"),
     ],
     # === ては patterns (Sudachi tokenizes as single) ===
+    # Note: てはいけない variants are auto-generated from PHRASE_BASES
     "ては": [
-        ("てはいけない", "must not; may not"),
-        ("てはいけません", "must not (polite)"),
         ("てはだめ", "must not (casual)"),
     ],
     # === は patterns ===
@@ -445,15 +438,12 @@ COMPOUND_PHRASES = {
         ("はだめ", "must not (casual)"),
     ],
     # === はず patterns ===
+    # Note: はずだ/はずがない variants are auto-generated from PHRASE_BASES
     "はず": [
-        ("はずだ", "should be; expected to"),
-        ("はずです", "should be (polite)"),
-        ("はずがない", "can't be; impossible"),
     ],
     # === ほう patterns ===
+    # Note: ほうがいい variants are auto-generated from PHRASE_BASES
     "ほう": [
-        ("ほうがいい", "had better; should"),
-        ("ほうがいいです", "had better (polite)"),
     ],
     # === ほど patterns ===
     "ほど": [
@@ -461,26 +451,20 @@ COMPOUND_PHRASES = {
     ],
     # === も patterns ===
     "も": [
-        ("もいい", "it's okay to"),
         ("もいいですか", "may I...?"),
     ],
     # === わけ patterns ===
+    # Note: わけがない/わけではない/わけにはいかない variants are auto-generated
     "わけ": [
-        ("わけがない", "no way that; impossible"),
-        ("わけではない", "doesn't mean that; not necessarily"),
-        ("わけにはいかない", "can't possibly; mustn't"),
         ("わけだ", "no wonder; that's why"),
     ],
     # === べ patterns ===
+    # Note: べきだ/べきではない variants are auto-generated from PHRASE_BASES
     "べ": [
-        ("べきだ", "should; ought to"),
-        ("べきです", "should (polite)"),
-        ("べきではない", "should not"),
     ],
     # === つもり patterns ===
+    # Note: つもりだ variants are auto-generated from PHRASE_BASES
     "つもり": [
-        ("つもりだ", "intend to; plan to"),
-        ("つもりです", "intend to (polite)"),
     ],
     # === ば patterns ===
     "ば": [
@@ -501,14 +485,13 @@ COMPOUND_PHRASES = {
         ("たらどう", "how about; why don't you"),
     ],
     # === に patterns ===
+    # Note: にちがいない/にすぎない variants are auto-generated from PHRASE_BASES
     "に": [
-        ("にちがいない", "must be; no doubt"),
         ("において", "in; at; regarding"),
         ("に対して", "towards; regarding"),
         ("について", "about; concerning"),
         ("によって", "by means of; depending on"),
         ("にとって", "for; to (someone)"),
-        ("にすぎない", "merely; nothing but; only"),
         ("にしても", "even if; even though"),
         ("にしては", "for; considering"),
         ("に関して", "regarding; concerning"),
