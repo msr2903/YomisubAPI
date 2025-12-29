@@ -41,6 +41,7 @@ AUXILIARY_DESCRIPTIONS: dict[str, tuple[str, str]] = {
     "DASU": ("sudden", "burst into"),
     "GARU": ("appearance", "seems to want"),
     "SOU_APPEARANCE": ("appearance", "looks like"),
+    "NASAI": ("imperative", "command (polite)"),
 }
 
 # Mapping from Conjugation enum to descriptions

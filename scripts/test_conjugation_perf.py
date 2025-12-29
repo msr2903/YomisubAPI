@@ -26,6 +26,7 @@ def run_tests():
         ("書いた", "verb", "wrote"),
         ("話しません", "verb", "not speak (polite)"), # imprecise match for translation, mostly checking breakdown
         ("待たされる", "verb", "is made to wait"), # causative-passive
+        ("食べなさい", "verb", "please eat"), # nasai
         
         # Standard Ichidan
         ("信じられない", "verb", "can't believe"), # potential + negative

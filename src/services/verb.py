@@ -46,6 +46,7 @@ class Auxiliary(StrEnum):
     RASHII = auto()              # らしい - apparently
     SOUDA_HEARSAY = auto()       # そうだ - I heard
     SOUDA_CONJECTURE = auto()    # そうだ - looks like
+    NASAI = auto()               # なさい - polite imperative
     
     # Causative/Passive
     SERU_SASERU = auto()         # せる/させる - causative
@@ -588,6 +589,15 @@ def _conjugate_auxiliary(
                     return [base + "そうだった", base + "そうでした"]
                 case _:
                     raise ValueError(f"Unhandled conjugation for souda (conjecture): {conj}")
+
+        case Auxiliary.NASAI:
+            base = conjugate(verb, Conjugation.CONJUNCTIVE, type2)[0]
+            # nasai acts like an imperative, only exists in dictionary form usually
+            match conj:
+                case Conjugation.DICTIONARY:
+                    return [base + "なさい"]
+                case _:
+                    raise ValueError(f"Unhandled conjugation for nasai: {conj}")
         
         case Auxiliary.SERU_SASERU | Auxiliary.SHORTENED_CAUSATIVE:
             if conj in (Conjugation.TARA, Conjugation.TARI):
@@ -759,7 +769,8 @@ def conjugate_auxiliaries(
             final_only = (
                 Auxiliary.MASU, Auxiliary.NAI, Auxiliary.TAI,
                 Auxiliary.HOSHII, Auxiliary.RASHII,
-                Auxiliary.SOUDA_CONJECTURE, Auxiliary.SOUDA_HEARSAY
+                Auxiliary.SOUDA_CONJECTURE, Auxiliary.SOUDA_HEARSAY,
+                Auxiliary.NASAI
             )
             if aux in final_only:
                 raise ValueError(f"{aux} must be final auxiliary")
@@ -871,6 +882,7 @@ def deconjugate_verb(
         Auxiliary.MASU, Auxiliary.SOUDA_CONJECTURE, Auxiliary.SOUDA_HEARSAY,
         Auxiliary.TE_IRU, Auxiliary.TAI, Auxiliary.NAI, Auxiliary.YARU,
         Auxiliary.MIRU, Auxiliary.OKU, Auxiliary.SHIMAU, Auxiliary.HOSHII,
+        Auxiliary.NASAI,
     ]
     
     for penultimate in penultimates:

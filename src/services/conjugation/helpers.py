@@ -170,6 +170,8 @@ def generate_translation_hint(
                 hint = f"try to {hint}"
             case Auxiliary.SHIMAU:
                 hint = f"end up {hint}ing"
+            case Auxiliary.NASAI:
+                hint = f"please {hint}"
             case Auxiliary.MASU:
                 pass
             case _:
