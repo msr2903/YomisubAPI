@@ -40,8 +40,9 @@ def run_tests():
         ("分かりにくい", "verb", "hard to understand"),
         ("分かりにくくなかった", "verb", "was not hard to understand"),
         ("読み始める", "verb", "start reading"),
-        ("読み終わった", "verb", "finish reading"),
+        ("読み終わった", "verb", "finished reading"),
         ("飲み続ける", "verb", "continue drinking"),
+        ("食べてしまった", "verb", "ended up eating"),
 
         # Irregular
         ("勉強した", "verb", "studied"), # suru verb

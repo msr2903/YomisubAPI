@@ -45,16 +45,20 @@ def make_past_tense(verb: str) -> str:
     
     # Handle verb phrases like "to eat" or "not eat"
     if verb.startswith("to "):
-        base = verb[3:].split()[0] if verb[3:] else verb
-        return _inflect_past(base)
+        core = verb[3:]
+        parts = core.split(" ", 1)
+        first = parts[0]
+        rest = " " + parts[1] if len(parts) > 1 else ""
+        return _inflect_past(first) + rest
     
     if verb.startswith("not "):
-        base = verb[4:].split()[0] if verb[4:] else verb
-        return f"didn't {base}"
+        return f"didn't {verb[4:]}"
     
-    # Extract first word (the main verb)
-    first_word = verb.split()[0]
-    return _inflect_past(first_word)
+    # Extract first word, inflect it, then rejoin
+    parts = verb.split(" ", 1)
+    first = parts[0]
+    rest = " " + parts[1] if len(parts) > 1 else ""
+    return _inflect_past(first) + rest
 
 
 def _inflect_past(verb: str) -> str:
@@ -196,9 +200,7 @@ def generate_translation_hint(
              else:
                  hint = f"not {hint}"
         case Conjugation.TA:
-            if hint.endswith("ing"):
-                pass  # Keep -ing form for processing
-            elif "easy to " in hint or "hard to " in hint:
+            if "easy to " in hint or "hard to " in hint:
                 # Adjectival phrases (easy/hard to X) take "was"
                 hint = f"was {hint}"
             elif "can " in hint and "not" in hint:
