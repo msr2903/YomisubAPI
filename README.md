@@ -16,13 +16,13 @@ A comprehensive Japanese text analysis API with advanced conjugation support, po
 ## Features
 
 - 🔍 **Smart Tokenization** - Uses SudachiPy with SplitMode.C to keep compound nouns together
-- 📚 **Auto-Download Dictionary** - JMDict automatically downloaded from latest release (214k+ entries)
+- 📚 **Dual Dictionary** - JMDict (214k+ entries) + JMNedict (743k+ names) automatically downloaded
 - 🧩 **Conjugation Analysis** - Deconjugate verbs and adjectives with detailed breakdowns
 - 🎯 **30+ Auxiliary Constructions** - Potential, passive, causative, benefactive, and more
-- 📝 **150+ Grammar Patterns** - Common JLPT N5-N2 grammar phrases detected automatically
+- 📝 **150+ Grammar Patterns** - Compositional phrase matching with auto-generated conjugation variants
 - 📑 **Grammar Support** - Explanations for particles, auxiliaries, and pronouns
 - 🌐 **Natural English** - Uses lemminflect for accurate past tense (ate, went, thought)
-- 🚫 **Name Filtering** - Automatically skips untranslated katakana (names)
+- 🚫 **Name Detection** - Recognizes Japanese names with honorific suffixes (田中さん → Tanaka)
 - 📱 **iOS Support** - Analyze text directly from your iPhone or iPad with Netflix, Apple TV, or any other streaming app
 
 ## iOS Shortcut (Netflix, Apple TV, etc.)
@@ -144,13 +144,19 @@ YomisubAPI/
 │   ├── main.py              # FastAPI routes
 │   ├── models.py            # Pydantic models
 │   └── services/
-│       ├── analyzer.py      # Japanese analyzer
-│       ├── conjugation.py   # Conjugation logic
+│       ├── analyzer.py      # Japanese analyzer (SudachiPy)
+│       ├── jmdict.py        # Dictionary lookup (JMDict + JMNedict)
 │       ├── verb.py          # Verb conjugation rules
 │       ├── adjective.py     # Adjective conjugation
-│       └── jmdict.py        # Dictionary lookup
+│       ├── conjugation_legacy.py  # Analysis functions
+│       └── conjugation/     # Modular package
+│           ├── __init__.py  # Package exports
+│           ├── data.py      # Constants (GRAMMAR_MAP, POS_MAP)
+│           ├── phrases.py   # Phrase patterns (COMPOUND_PHRASES)
+│           └── helpers.py   # Utility functions
 ├── data/
-│   └── jmdict-eng.json.gz   # Auto-downloaded on first run
+│   ├── jmdict-eng.json.gz   # Auto-downloaded (214k entries)
+│   └── jmnedict-eng.json.gz # Auto-downloaded (743k names)
 ├── docs/
 │   ├── index.html           # API Documentation
 │   └── developer.html       # Developer Guide
@@ -170,7 +176,6 @@ YomisubAPI/
 - **Homographs**: Contextual reading selection (e.g. `辛い` as *spicy* vs *painful*) depends on Sudachi's tokenization model and may occasionally be incorrect.
 - **Idioms**: Multi-word idioms (e.g. `腹が立つ` - to get angry) are usually split into individual words (`Stomach` + `Stand`) unless they are single dictionary tokens.
 - **Slang Negations**: In simple analysis, slang negations like `〜んじゃねー` might be filtered out, leaving only the main verb. Use full analysis for these.
-- **Proper Names**: Names not in the main JMDict (e.g. specific surnames) may appear without definitions.
 
 ## Documentation
 

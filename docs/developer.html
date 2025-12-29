@@ -676,10 +676,15 @@
 <div class="tree-item"><span class="indent">└── </span><span class="folder">services/</span></div>
 <div class="tree-item"><span class="indent">    ├── </span><span class="file">__init__.py</span><span class="comment"># Package exports</span></div>
 <div class="tree-item"><span class="indent">    ├── </span><span class="file">analyzer.py</span><span class="comment"># SudachiPy tokenizer wrapper</span></div>
-<div class="tree-item"><span class="indent">    ├── </span><span class="file">jmdict.py</span><span class="comment"># Dictionary lookup service</span></div>
+<div class="tree-item"><span class="indent">    ├── </span><span class="file">jmdict.py</span><span class="comment"># Dictionary lookup (JMDict + JMNedict)</span></div>
 <div class="tree-item"><span class="indent">    ├── </span><span class="file">verb.py</span><span class="comment"># Verb conjugation rules</span></div>
 <div class="tree-item"><span class="indent">    ├── </span><span class="file">adjective.py</span><span class="comment"># Adjective conjugation rules</span></div>
-<div class="tree-item"><span class="indent">    └── </span><span class="file">conjugation.py</span><span class="comment"># Main orchestration</span></div>
+<div class="tree-item"><span class="indent">    ├── </span><span class="file">conjugation_legacy.py</span><span class="comment"># Analysis functions</span></div>
+<div class="tree-item"><span class="indent">    └── </span><span class="folder">conjugation/</span><span class="comment"># Modular package</span></div>
+<div class="tree-item"><span class="indent">        ├── </span><span class="file">__init__.py</span><span class="comment"># Re-exports all public API</span></div>
+<div class="tree-item"><span class="indent">        ├── </span><span class="file">data.py</span><span class="comment"># GRAMMAR_MAP, POS_MAP, etc.</span></div>
+<div class="tree-item"><span class="indent">        ├── </span><span class="file">phrases.py</span><span class="comment"># COMPOUND_PHRASES, compositional matching</span></div>
+<div class="tree-item"><span class="indent">        └── </span><span class="file">helpers.py</span><span class="comment"># Utility functions</span></div>
             </div>
 
             <div class="module-grid">
@@ -689,7 +694,7 @@
                 </div>
                 <div class="module-card">
                     <h4>📚 <code>jmdict.py</code></h4>
-                    <p>Fast dictionary lookups with in-memory indexing. Auto-downloads latest version.</p>
+                    <p>JMDict (214k words) + JMNedict (743k names). Smart name suffix stripping (田中さん→田中).</p>
                 </div>
                 <div class="module-card">
                     <h4>🔧 <code>verb.py</code></h4>
@@ -697,11 +702,11 @@
                 </div>
                 <div class="module-card">
                     <h4>🎨 <code>adjective.py</code></h4>
-                    <p>I-adjective and na-adjective conjugation rules.</p>
+                    <p>I-adjective and na-adjective conjugation rules with copula handling.</p>
                 </div>
                 <div class="module-card">
-                    <h4>🎯 <code>conjugation.py</code></h4>
-                    <p>Main analysis logic. 150+ grammar patterns. Translation hints generation.</p>
+                    <h4>🎯 <code>conjugation/</code></h4>
+                    <p>Modular package: data.py (constants), phrases.py (150+ patterns), helpers.py (utilities).</p>
                 </div>
             </div>
         </section>
@@ -759,15 +764,20 @@ morphemes = tokenizer.tokenize(<span class="string">"食べた"</span>, SplitMod
         <!-- JMDict -->
         <section id="jmdict">
             <h2>jmdict.py<span class="tag tag-singleton">Singleton</span></h2>
-            <p>Fast English meaning lookups using the jmdict-simplified JSON format.</p>
+            <p>Fast English meaning lookups using jmdict-simplified and jmnedict-simplified JSON formats. Supports both regular words (214k entries) and proper names (743k entries).</p>
 
             <h3 id="jmdict-indexing">Indexing Strategy</h3>
-            <p>At load time, we build two indexes for O(1) lookups:</p>
+            <p>At load time, we build separate indexes for words and names:</p>
 
             <pre><code><span class="keyword">class</span> <span class="class">JMDictionary</span>:
     _index_kanji: <span class="class">dict</span>[<span class="class">str</span>, <span class="class">list</span>[<span class="class">dict</span>]]  <span class="comment"># "日本語" → [entry1, entry2, ...]</span>
     _index_kana: <span class="class">dict</span>[<span class="class">str</span>, <span class="class">list</span>[<span class="class">dict</span>]]   <span class="comment"># "にほんご" → [entry1, ...]</span>
-
+    _index_names: <span class="class">dict</span>[<span class="class">str</span>, <span class="class">list</span>[<span class="class">dict</span>]] <span class="comment"># "田中" → [name_entry, ...]</span>
+    
+    <span class="comment"># Suffixes to strip for name lookup</span>
+    _NAME_SUFFIXES = ("さん", "先生", "様", "君", "ちゃん", "殿")
+</code></pre>
+            
 <h3 id="jmdict-smart-lookup">Smart Lookup Algorithm</h3>
             <p>To resolve homonyms (e.g., 本 as "book" vs "origin", words like "can" vs "out of stock"), we use a weighted scoring system:</p>
 
