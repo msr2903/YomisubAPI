@@ -8,7 +8,7 @@ sys.path.append(str(project_root / "src"))
 from services.analysis import deconjugate_word
 
 def test_breakdown_forms():
-    words = ["読みにくかった", "食べさせられた"]
+    words = ["読みにくかった", "読みやすかった", "食べさせられた"]
     
     print("Testing Breakdown Forms:\n")
     

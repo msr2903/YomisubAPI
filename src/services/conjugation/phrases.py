@@ -422,21 +422,6 @@ COMPOUND_PHRASES = {
         ("ところだ", "about to; just did"),
         ("ところだった", "was about to"),
     ],
-    # === すぎ patterns ===
-    "すぎ": [
-        ("すぎる", "too much; excessively"),
-        ("すぎた", "was too much"),
-    ],
-    # === やすい patterns ===
-    "やすい": [
-        ("やすい", "easy to do"),
-        ("やすかった", "was easy to do"),
-    ],
-    # === にくい patterns ===
-    "にくい": [
-        ("にくい", "hard to do; difficult to"),
-        ("にくかった", "was hard to do"),
-    ],
     # === はじめ patterns ===
     "はじめ": [
         ("はじめる", "start doing"),
