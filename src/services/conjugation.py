@@ -1409,6 +1409,53 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
                 else:
                     break
         
+        # Group i-adjectives with their conjugation (くない, かった, etc.)
+        elif main_pos == "形容詞":
+            while j < len(morphemes):
+                next_m = morphemes[j]
+                next_pos = next_m.part_of_speech()
+                next_main = next_pos[0] if next_pos else ""
+                next_sub = next_pos[1] if len(next_pos) > 1 else ""
+                ns = next_m.surface()
+                
+                # Attach: 形容詞-非自立可能 (ない), 助動詞 (た, です), or 助詞 (て, ば)
+                can_attach = (
+                    (next_main == "形容詞" and next_sub == "非自立可能") or
+                    next_main == "助動詞" or
+                    ns in {"て", "ば"}
+                )
+                
+                if can_attach:
+                    compound_surface += ns
+                    compound_reading += jaconv.kata2hira(next_m.reading_form())
+                    j += 1
+                else:
+                    break
+        
+        # Group nouns with copula conjugations (です, だ, じゃない, etc.)
+        elif main_pos == "名詞":
+            prev_was_de = False
+            while j < len(morphemes):
+                next_m = morphemes[j]
+                next_pos = next_m.part_of_speech()
+                next_main = next_pos[0] if next_pos else ""
+                ns = next_m.surface()
+                
+                # Attach: 助動詞 (だ, です, etc.), 形容詞 (ない), or は after で
+                can_attach = (
+                    next_main in {"助動詞", "形容詞"} or
+                    ns in {"じゃ", "では", "で"} or
+                    (ns == "は" and prev_was_de)
+                )
+                
+                if can_attach:
+                    compound_surface += ns
+                    compound_reading += jaconv.kata2hira(next_m.reading_form())
+                    prev_was_de = (ns == "で")
+                    j += 1
+                else:
+                    break
+        
         if base_form in seen_bases:
             i = j
             continue
@@ -1478,6 +1525,122 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
                         summary=fallback_summary,
                         translation_hint=fallback_summary,
                     )
+        
+        # Na-adjective conjugation analysis
+        elif main_pos == "形状詞" and compound_surface != base_form:
+            na_summary = None
+            na_hint = None
+            
+            # Past forms
+            if "でした" in compound_surface:
+                na_summary = "past (polite)"
+                na_hint = "was (polite)"
+            elif "だった" in compound_surface:
+                na_summary = "past"
+                na_hint = "was"
+            # Negative past forms
+            elif "じゃなかった" in compound_surface or "ではなかった" in compound_surface:
+                na_summary = "negative past"
+                na_hint = "was not"
+            # Negative forms
+            elif "じゃない" in compound_surface or "ではない" in compound_surface:
+                na_summary = "negative"
+                na_hint = "is not"
+            elif "じゃありません" in compound_surface or "ではありません" in compound_surface:
+                na_summary = "negative (polite)"
+                na_hint = "is not (polite)"
+            # Present/copula forms
+            elif compound_surface.endswith("です"):
+                na_summary = "copula (polite)"
+                na_hint = "is (polite)"
+            elif compound_surface.endswith("だ"):
+                na_summary = "copula"
+                na_hint = "is"
+            
+            if na_summary:
+                conjugation_info = ConjugationInfo(
+                    chain=[ConjugationLayer(
+                        form="",
+                        type="NA_COPULA",
+                        english=na_summary,
+                        meaning=na_hint
+                    )],
+                    summary=na_summary,
+                    translation_hint=na_hint,
+                )
+        
+        # I-adjective conjugation analysis
+        elif main_pos == "形容詞" and compound_surface != base_form:
+            iadj_summary = None
+            iadj_hint = None
+            
+            # Check conjugation patterns
+            if compound_surface.endswith("くなかった"):
+                iadj_summary = "negative past"
+                iadj_hint = "was not"
+            elif compound_surface.endswith("かった"):
+                iadj_summary = "past"
+                iadj_hint = "was"
+            elif compound_surface.endswith("くない"):
+                iadj_summary = "negative"
+                iadj_hint = "not"
+            elif compound_surface.endswith("くて"):
+                iadj_summary = "te-form"
+                iadj_hint = "and (connecting)"
+            elif compound_surface.endswith("ければ"):
+                iadj_summary = "conditional"
+                iadj_hint = "if"
+            elif compound_surface.endswith("く"):
+                iadj_summary = "adverbial"
+                iadj_hint = "adverb form"
+            
+            if iadj_summary:
+                conjugation_info = ConjugationInfo(
+                    chain=[ConjugationLayer(
+                        form="",
+                        type="I_ADJ",
+                        english=iadj_summary,
+                        meaning=iadj_hint
+                    )],
+                    summary=iadj_summary,
+                    translation_hint=iadj_hint,
+                )
+        
+        # Noun + copula conjugation analysis
+        elif main_pos == "名詞" and compound_surface != base_form:
+            noun_summary = None
+            noun_hint = None
+            
+            if "でした" in compound_surface:
+                noun_summary = "past (polite)"
+                noun_hint = "was (polite)"
+            elif "だった" in compound_surface:
+                noun_summary = "past"
+                noun_hint = "was"
+            elif "じゃなかった" in compound_surface or "ではなかった" in compound_surface:
+                noun_summary = "negative past"
+                noun_hint = "was not"
+            elif "じゃない" in compound_surface or "ではない" in compound_surface:
+                noun_summary = "negative"
+                noun_hint = "is not"
+            elif compound_surface.endswith("です"):
+                noun_summary = "copula (polite)"
+                noun_hint = "is (polite)"
+            elif compound_surface.endswith("だ"):
+                noun_summary = "copula"
+                noun_hint = "is"
+            
+            if noun_summary:
+                conjugation_info = ConjugationInfo(
+                    chain=[ConjugationLayer(
+                        form="",
+                        type="NOUN_COPULA",
+                        english=noun_summary,
+                        meaning=noun_hint
+                    )],
+                    summary=noun_summary,
+                    translation_hint=noun_hint,
+                )
         
         phrases.append(PhraseToken(
             surface=compound_surface,
