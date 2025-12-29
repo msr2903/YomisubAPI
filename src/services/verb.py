@@ -713,6 +713,36 @@ def _conjugate_auxiliary(
                 dimau = conjugate(no_te + "ぢまう", conj)
                 return shimau + jimau + dimau
         
+        case Auxiliary.SUGIRU:
+            # Masu-stem + sugiru (Ichidan)
+            base = conjugate(verb, Conjugation.CONJUNCTIVE, type2)[0]
+            sugu = base + "すぎる"
+            return conjugate(sugu, conj, type2=True)
+
+        case Auxiliary.YASUI | Auxiliary.NIKUI:
+            # Masu-stem + yasui/nikui (I-adj pattern)
+            base = conjugate(verb, Conjugation.CONJUNCTIVE, type2)[0]
+            suffix = "やすい" if aux == Auxiliary.YASUI else "にくい"
+            stem = base + suffix[:-1] # ...yasu / ...niku
+            
+            match conj:
+                case Conjugation.NEGATIVE:
+                    return [stem + "くない"]
+                case Conjugation.CONJUNCTIVE:
+                    return [stem + "く"]
+                case Conjugation.DICTIONARY:
+                    return [base + suffix]
+                case Conjugation.CONDITIONAL:
+                    return [stem + "ければ"]
+                case Conjugation.TE:
+                    return [stem + "くて"]
+                case Conjugation.TA:
+                    return [stem + "かった"]
+                case Conjugation.TARA:
+                    return [stem + "かったら"]
+                case _:
+                    raise ValueError(f"Unhandled conjugation for {aux}: {conj}")
+
         case _:
             raise ValueError(f"Unhandled auxiliary: {aux}")
 
@@ -877,12 +907,13 @@ def deconjugate_verb(
         Auxiliary.KURU, Auxiliary.OKU, Auxiliary.SHIMAU,
         Auxiliary.TE_IRU, Auxiliary.TE_ARU, Auxiliary.TE_ORU,
         Auxiliary.POTENTIAL, Auxiliary.RERU_RARERU, Auxiliary.SERU_SASERU,
+        Auxiliary.SUGIRU,
     ]
     depth2_finals = [
         Auxiliary.MASU, Auxiliary.SOUDA_CONJECTURE, Auxiliary.SOUDA_HEARSAY,
         Auxiliary.TE_IRU, Auxiliary.TAI, Auxiliary.NAI, Auxiliary.YARU,
         Auxiliary.MIRU, Auxiliary.OKU, Auxiliary.SHIMAU, Auxiliary.HOSHII,
-        Auxiliary.NASAI,
+        Auxiliary.NASAI, Auxiliary.SUGIRU, Auxiliary.YASUI, Auxiliary.NIKUI,
     ]
     
     for penultimate in penultimates:

@@ -32,6 +32,12 @@ def run_tests():
         ("信じられない", "verb", "can't believe"), # potential + negative
         ("食べれません", "verb", "cannot eat"),  # Ra-nuki potential
         
+        # Suffixes
+        ("食べすぎる", "verb", "over-eat"),
+        ("飲みすぎない", "verb", "not over-drink"),
+        ("読みやすい", "verb", "easy to read"),
+        ("分かりにくい", "verb", "hard to understand"),
+
         # Irregular
         ("勉強した", "verb", "studied"), # suru verb
         ("来ない", "verb", "not come"), # kuru verb

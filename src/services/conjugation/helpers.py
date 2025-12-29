@@ -172,6 +172,12 @@ def generate_translation_hint(
                 hint = f"end up {hint}ing"
             case Auxiliary.NASAI:
                 hint = f"please {hint}"
+            case Auxiliary.SUGIRU:
+                hint = f"over-{hint}" if " " not in hint else f"too much {hint}"
+            case Auxiliary.YASUI:
+                hint = f"easy to {hint}"
+            case Auxiliary.NIKUI:
+                hint = f"hard to {hint}"
             case Auxiliary.MASU:
                 pass
             case _:
