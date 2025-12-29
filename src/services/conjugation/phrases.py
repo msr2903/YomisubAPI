@@ -345,7 +345,6 @@ COMPOUND_PHRASES = {
     "だ": [
         ("だけでなく", "not only... but also"),
         ("だけでは", "just... is not enough"),
-        ("だろう", "probably; I think"),
     ],
     # === ちゃ patterns (casual contractions) ===
     "ちゃ": [

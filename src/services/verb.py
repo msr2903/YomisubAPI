@@ -783,11 +783,15 @@ def _conjugate_auxiliary(
 
         case Auxiliary.DESHOU:
             # Dict-form + deshou
+            if conj != Conjugation.DICTIONARY:
+                return []
             base = conjugate(verb, Conjugation.DICTIONARY, type2)[0]
             return [base + "でしょう"]
 
         case Auxiliary.DAROU:
             # Dict-form + darou
+            if conj != Conjugation.DICTIONARY:
+                return []
             base = conjugate(verb, Conjugation.DICTIONARY, type2)[0]
             return [base + "だろう"]
 

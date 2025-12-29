@@ -95,6 +95,23 @@ def build_conjugation_info(
     summary_parts: list[str] = []
     
     for aux in auxiliaries:
+        if aux == Auxiliary.DESHOU:
+            # Split DESHOU into 2 layered: 1. probably (darou) 2. polite
+            layers.append(ConjugationLayer(
+                form="",
+                type="DAROU",
+                english="probably (darou)",
+                meaning="probably",
+            ))
+            layers.append(ConjugationLayer(
+                form="",
+                type="POLITE",
+                english="polite",
+                meaning="polite form",
+            ))
+            summary_parts.extend(["probably", "polite"])
+            continue
+            
         short_name, meaning = get_auxiliary_info(aux)
         layers.append(ConjugationLayer(
             form="",
