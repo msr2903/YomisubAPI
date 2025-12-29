@@ -210,6 +210,157 @@ POS_WHITELIST = frozenset({"名詞", "動詞", "形容詞", "形状詞"})
 # POS to skip
 SKIP_POS = frozenset({"補助記号", "記号", "空白"})
 
+# =============================================================================
+# Compositional Phrase Matching System
+# =============================================================================
+# Instead of hardcoding every variant (ない, ません, なかった, ませんでした),
+# we define base patterns and automatically generate all conjugation variants.
+
+# Conjugatable endings and their variants
+# Format: (base_ending, [(variant, suffix_label), ...])
+ENDING_CONJUGATIONS = {
+    # ない (i-adjective negative) conjugations
+    "ない": [
+        ("ない", ""),
+        ("ません", " (polite)"),
+        ("なかった", " (past)"),
+        ("ませんでした", " (polite past)"),
+        ("なくて", " (te-form)"),
+    ],
+    # できる (ichidan verb) conjugations
+    "できる": [
+        ("できる", ""),
+        ("できます", " (polite)"),
+        ("できない", " (negative)"),
+        ("できません", " (polite negative)"),
+        ("できた", " (past)"),
+        ("できました", " (polite past)"),
+        ("できなかった", " (negative past)"),
+    ],
+    # ある (godan verb) conjugations
+    "ある": [
+        ("ある", ""),
+        ("あります", " (polite)"),
+        ("あった", " (past)"),
+        ("ありました", " (polite past)"),
+        ("ない", " (negative)"),  # ある→ない special
+        ("ありません", " (polite negative)"),
+    ],
+    # いる (ichidan verb) conjugations
+    "いる": [
+        ("いる", ""),
+        ("います", " (polite)"),
+        ("いた", " (past)"),
+        ("いました", " (polite past)"),
+        ("いない", " (negative)"),
+        ("いません", " (polite negative)"),
+    ],
+    # なる (godan verb) conjugations
+    "なる": [
+        ("なる", ""),
+        ("なります", " (polite)"),
+        ("なった", " (past)"),
+        ("ならない", " (negative)"),
+        ("なりません", " (polite negative)"),
+    ],
+    # する (irregular) conjugations
+    "する": [
+        ("する", ""),
+        ("します", " (polite)"),
+        ("した", " (past)"),
+        ("しない", " (negative)"),
+        ("しません", " (polite negative)"),
+    ],
+    # いい/よい (i-adjective) conjugations
+    "いい": [
+        ("いい", ""),
+        ("いいです", " (polite)"),
+        ("よかった", " (past)"),
+        ("よくない", " (negative)"),
+    ],
+    # だ (copula) conjugations
+    "だ": [
+        ("だ", ""),
+        ("です", " (polite)"),
+        ("だった", " (past)"),
+        ("でした", " (polite past)"),
+        ("ではない", " (negative)"),
+        ("じゃない", " (negative casual)"),
+    ],
+    # いける/いけない pattern
+    "いけない": [
+        ("いけない", ""),
+        ("いけません", " (polite)"),
+        ("だめ", " (casual)"),
+    ],
+}
+
+# Base patterns: (stem, ending_type, base_meaning)
+# The stem is the fixed part, ending_type refers to ENDING_CONJUGATIONS
+PHRASE_BASES = [
+    # かも patterns
+    ("かもしれ", "ない", "might; may; possibly"),
+    
+    # こと patterns
+    ("ことが", "できる", "can; be able to"),
+    ("ことが", "ある", "sometimes; have experienced"),
+    ("ことに", "する", "decide to"),
+    ("ことに", "なる", "it's been decided; will end up"),
+    ("ことは", "ない", "no need to; never happens"),
+    
+    # はず patterns
+    ("はず", "だ", "should be; expected to"),
+    ("はずが", "ない", "can't be; impossible"),
+    
+    # わけ patterns
+    ("わけが", "ない", "no way that; impossible"),
+    ("わけでは", "ない", "doesn't mean that"),
+    ("わけにはいか", "ない", "can't possibly; mustn't"),
+    
+    # べき patterns
+    ("べき", "だ", "should; ought to"),
+    ("べきでは", "ない", "should not"),
+    
+    # つもり patterns
+    ("つもり", "だ", "intend to; plan to"),
+    
+    # ほうが patterns
+    ("ほうが", "いい", "had better; should"),
+    
+    # て form patterns
+    ("ては", "いけない", "must not; may not"),
+    ("ても", "いい", "may; it's okay to"),
+    
+    # に patterns  
+    ("にちがい", "ない", "must be; no doubt"),
+    ("にすぎ", "ない", "merely; nothing but"),
+    ("とは限ら", "ない", "not necessarily; not always"),
+]
+
+def _generate_compound_phrases():
+    """Generate all phrase variants from base patterns."""
+    result = {}
+    
+    # Generate from compositional patterns
+    for stem, ending_type, base_meaning in PHRASE_BASES:
+        if ending_type not in ENDING_CONJUGATIONS:
+            continue
+        
+        for variant, suffix in ENDING_CONJUGATIONS[ending_type]:
+            full_phrase = stem + variant
+            meaning = base_meaning + suffix
+            
+            # Get first character as key
+            first_char = full_phrase[0]
+            if first_char not in result:
+                result[first_char] = []
+            result[first_char].append((full_phrase, meaning))
+    
+    return result
+
+# Generate the compositional phrases
+_COMPOSITIONAL_PHRASES = _generate_compound_phrases()
+
 # Multi-token grammar phrases that should be grouped together
 # Key: first token, Value: list of (full_phrase, meaning)
 # Organized by JLPT level patterns
@@ -686,6 +837,21 @@ COMPOUND_PHRASES = {
     ],
 }
 
+# Merge compositional phrases into COMPOUND_PHRASES
+# This adds auto-generated variants like かもしれません from かもしれ + ない pattern
+for first_char, phrase_list in _COMPOSITIONAL_PHRASES.items():
+    if first_char not in COMPOUND_PHRASES:
+        COMPOUND_PHRASES[first_char] = []
+    # Add compositional phrases (avoid duplicates)
+    existing = {p[0] for p in COMPOUND_PHRASES[first_char]}
+    for phrase, meaning in phrase_list:
+        if phrase not in existing:
+            COMPOUND_PHRASES[first_char].append((phrase, meaning))
+
+# Sort all phrase lists by length (descending) for greedy matching
+for key in COMPOUND_PHRASES:
+    COMPOUND_PHRASES[key] = sorted(COMPOUND_PHRASES[key], key=lambda x: -len(x[0]))
+
 
 # ============================================================================
 # Helper Functions
@@ -771,14 +937,24 @@ def try_match_compound_phrase(morphemes: list, start_idx: int) -> tuple[str, str
         return None
     
     first_surface = morphemes[start_idx].surface()
-    if first_surface not in COMPOUND_PHRASES:
+    
+    # Check both the full first surface AND just the first character
+    # (compositional phrases use first character as key)
+    candidates = []
+    if first_surface in COMPOUND_PHRASES:
+        candidates.extend(COMPOUND_PHRASES[first_surface])
+    first_char = first_surface[0] if first_surface else ""
+    if first_char in COMPOUND_PHRASES and first_char != first_surface:
+        candidates.extend(COMPOUND_PHRASES[first_char])
+    
+    if not candidates:
         return None
     
     # Build the remaining text from morphemes
     remaining = "".join(m.surface() for m in morphemes[start_idx:start_idx + 10])
     
     # Check each possible phrase (longest first for greedy match)
-    for phrase, meaning in sorted(COMPOUND_PHRASES[first_surface], key=lambda x: -len(x[0])):
+    for phrase, meaning in sorted(candidates, key=lambda x: -len(x[0])):
         if remaining.startswith(phrase):
             # Count how many tokens this phrase consumes
             consumed = 0
