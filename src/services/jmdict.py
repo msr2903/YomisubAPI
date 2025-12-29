@@ -400,9 +400,23 @@ class JMDictionary:
         glosses = [g.get("text", "") for g in target_senses[0].get("gloss", []) if g.get("text")]
         return "; ".join(glosses[:3]) if glosses else None
 
+    # Common name suffixes to try stripping
+    _NAME_SUFFIXES = ("さん", "先生", "様", "君", "ちゃん", "殿", "氏", "さま")
+    
     def lookup_details(self, word: str, reading: str | None = None, is_counter: bool = False) -> dict | None:
         """Look up meaning and tags. Includes names."""
         entry = self._find_best_entry(word, reading, is_counter, include_names=True)
+        
+        # If not found, try stripping name suffixes (田中さん → 田中)
+        if not entry:
+            for suffix in self._NAME_SUFFIXES:
+                if word.endswith(suffix) and len(word) > len(suffix):
+                    base_word = word[:-len(suffix)]
+                    entry = self._find_best_entry(base_word, None, is_counter, include_names=True)
+                    if entry and entry.get("_is_name"):
+                        # Found a name! Add suffix info to the result
+                        break
+        
         if not entry:
             return None
             
