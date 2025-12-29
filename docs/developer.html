@@ -534,6 +534,7 @@
             <a href="#architecture" class="nav-link">Architecture</a>
             <a href="#data-flow" class="nav-link">Data Flow</a>
             <a href="#folder-structure" class="nav-link">Folder Structure</a>
+            <a href="#performance" class="nav-link">Performance</a>
         </div>
 
         <div class="nav-section">
@@ -542,7 +543,8 @@
             <a href="#analyzer-tokenization" class="nav-link sub">Tokenization</a>
             <a href="#analyzer-splitmode" class="nav-link sub">SplitMode</a>
             <a href="#jmdict" class="nav-link">jmdict.py</a>
-            <a href="#jmdict-indexing" class="nav-link sub">Indexing</a>
+            <a href="#jmdict-indexing" class="nav-link sub">Dual Dictionary</a>
+            <a href="#jmdict-names" class="nav-link sub">Name Lookup</a>
             <a href="#jmdict-download" class="nav-link sub">Auto-Download</a>
         </div>
 
@@ -553,9 +555,11 @@
             <a href="#verb-rules" class="nav-link sub">Rules</a>
             <a href="#verb-deconjugate" class="nav-link sub">Deconjugation</a>
             <a href="#adjective" class="nav-link">adjective.py</a>
-            <a href="#conjugation" class="nav-link">conjugation.py</a>
+            <a href="#conjugation" class="nav-link">conjugation/</a>
+            <a href="#conjugation-compositional" class="nav-link sub">Compositional</a>
             <a href="#conjugation-phrases" class="nav-link sub">Phrase Detection</a>
             <a href="#conjugation-grouping" class="nav-link sub">Morpheme Grouping</a>
+            <a href="conjugation_codes.html" class="nav-link sub">Conjugation Codes</a>
         </div>
 
         <div class="nav-section">
@@ -570,7 +574,7 @@
         <!-- Architecture -->
         <section id="architecture">
             <h2>Architecture Overview</h2>
-            <p>Yomisub API uses a layered architecture where each module has a specific responsibility. The main orchestration happens in <code>conjugation.py</code>, which coordinates all other modules.</p>
+            <p>Yomisub API uses a layered architecture where each module has a specific responsibility. The conjugation logic is organized as a modular package.</p>
 
             <div class="diagram">
 <span class="box">┌─────────────────────────────────────────────────────────────────┐</span>
@@ -580,11 +584,12 @@
                                <span class="arrow">│</span>
                                <span class="arrow">▼</span>
 <span class="box">┌─────────────────────────────────────────────────────────────────┐</span>
-<span class="box">│</span>                    <span class="label">conjugation.py</span>                                <span class="box">│</span>
-<span class="box">│</span>              Main orchestration layer                           <span class="box">│</span>
-<span class="box">│</span>  • analyze_full()      • COMPOUND_PHRASES dictionary            <span class="box">│</span>
-<span class="box">│</span>  • analyze_simple()    • try_deconjugate_verb()                 <span class="box">│</span>
-<span class="box">│</span>  • GRAMMAR_MAP         • build_conjugation_info()               <span class="box">│</span>
+<span class="box">│</span>                  <span class="label">conjugation/</span> (Package)                           <span class="box">│</span>
+<span class="box">│</span>  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐                <span class="box">│</span>
+<span class="box">│</span>  │ <span class="label">data.py</span>     │ │ <span class="label">phrases.py</span>  │ │ <span class="label">helpers.py</span>  │                <span class="box">│</span>
+<span class="box">│</span>  │ GRAMMAR_MAP │ │ PHRASES     │ │ deconjugate │                <span class="box">│</span>
+<span class="box">│</span>  │ POS_MAP     │ │ compositional│ │ past_tense  │                <span class="box">│</span>
+<span class="box">│</span>  └─────────────┘ └─────────────┘ └─────────────┘                <span class="box">│</span>
 <span class="box">└────────┬─────────────────────┬───────────────────┬──────────────┘</span>
          <span class="arrow">│</span>                     <span class="arrow">│</span>                   <span class="arrow">│</span>
          <span class="arrow">▼</span>                     <span class="arrow">▼</span>                   <span class="arrow">▼</span>
@@ -596,11 +601,13 @@
 <span class="box">└────────┬────────┘</span>  <span class="box">└─────────────────┘</span>  <span class="box">└─────────────────┘</span>
          <span class="arrow">│</span>
          <span class="arrow">▼</span>
-<span class="box">┌─────────────────┐</span>
-<span class="box">│</span>   <span class="label">jmdict.py</span>     <span class="box">│</span>
-<span class="box">│</span>   Dictionary    <span class="box">│</span>
-<span class="box">│</span>   lookup()      <span class="box">│</span>
-<span class="box">└─────────────────┘</span>
+<span class="box">┌───────────────────────────────────┐</span>
+<span class="box">│</span>          <span class="label">jmdict.py</span>                <span class="box">│</span>
+<span class="box">│</span>  ┌───────────────┐ ┌───────────┐ <span class="box">│</span>
+<span class="box">│</span>  │ <span class="label">JMDict</span>        │ │ <span class="label">JMNedict</span>  │ <span class="box">│</span>
+<span class="box">│</span>  │ 214k words    │ │ 743k names│ <span class="box">│</span>
+<span class="box">│</span>  └───────────────┘ └───────────┘ <span class="box">│</span>
+<span class="box">└───────────────────────────────────┘</span>
             </div>
         </section>
 
@@ -823,6 +830,56 @@ morphemes = tokenizer.tokenize(<span class="string">"食べた"</span>, SplitMod
                 <li><strong>Usage</strong>: Slang (sl), Reference (comp/med/food), Dialect (ksb)</li>
             </ul>
 
+            <h3 id="jmdict-names">Name Lookup (JMNedict)</h3>
+            <p>Proper names are looked up in JMNedict, a separate database with 743k+ entries including surnames, given names, place names, and organizations:</p>
+
+            <div class="jp-example">
+                <span class="japanese">田中さん</span>
+                <span class="arrow">→</span>
+                <span class="result">"Tanaka" ['Name', 'Surname']</span>
+            </div>
+
+            <h4>Name Suffix Stripping</h4>
+            <p>Sudachi often tokenizes names with honorifics as single units. The API automatically strips common suffixes before lookup:</p>
+
+            <pre><code>_NAME_SUFFIXES = (
+    <span class="string">"さん"</span>,   <span class="comment"># polite (Mr./Ms.)</span>
+    <span class="string">"先生"</span>,   <span class="comment"># teacher/doctor</span>
+    <span class="string">"様"</span>,    <span class="comment"># very polite (sama)</span>
+    <span class="string">"君"</span>,    <span class="comment"># familiar (kun)</span>
+    <span class="string">"ちゃん"</span>,  <span class="comment"># affectionate</span>
+    <span class="string">"殿"</span>,    <span class="comment"># formal (dono)</span>
+    <span class="string">"氏"</span>,    <span class="comment"># formal (shi)</span>
+    <span class="string">"さま"</span>,   <span class="comment"># polite (hiragana)</span>
+)
+
+<span class="keyword">def</span> <span class="function">lookup_details</span>(word, reading):
+    result = lookup_jmdict(word)
+    <span class="keyword">if</span> not result:
+        <span class="comment"># Try stripping name suffixes</span>
+        <span class="keyword">for</span> suffix <span class="keyword">in</span> _NAME_SUFFIXES:
+            <span class="keyword">if</span> word.endswith(suffix):
+                base_name = word[:-len(suffix)]
+                result = lookup_jmnedict(base_name)
+                <span class="keyword">if</span> result:
+                    <span class="keyword">break</span>
+    <span class="keyword">return</span> result</code></pre>
+
+            <h4>Name Type Tags</h4>
+            <table>
+                <tr>
+                    <th>Tag</th>
+                    <th>Meaning</th>
+                    <th>Example</th>
+                </tr>
+                <tr><td>Surname</td><td>Family name</td><td>田中, 鈴木</td></tr>
+                <tr><td>Fem</td><td>Female given name</td><td>美香, 由紀</td></tr>
+                <tr><td>Masc</td><td>Male given name</td><td>太郎, 健二</td></tr>
+                <tr><td>Person</td><td>Full name (historical, famous)</td><td>徳川家康</td></tr>
+                <tr><td>Place</td><td>Place name</td><td>東京, 大阪</td></tr>
+                <tr><td>Org</td><td>Organization name</td><td>トヨタ</td></tr>
+            </table>
+
             <h3 id="jmdict-download">Auto-Download</h3>
             <p>If the dictionary isn't found locally, it's automatically downloaded from GitHub:</p>
 
@@ -857,6 +914,7 @@ morphemes = tokenizer.tokenize(<span class="string">"食べた"</span>, SplitMod
             <p>Verb conjugation rules for godan (五段), ichidan (一段), and irregular verbs.</p>
 
             <h3 id="verb-enums">Core Enums</h3>
+            <p>For a complete reference of all conjugation forms and auxiliary verbs, see the <a href="conjugation_codes.html" style="color: var(--accent-primary); text-decoration: none; font-weight: 500;">Conjugation Codes</a> documentation.</p>
 
             <h4>Conjugation<span class="tag tag-enum">StrEnum</span></h4>
             <p>Base conjugation forms:</p>
@@ -981,32 +1039,93 @@ morphemes = tokenizer.tokenize(<span class="string">"食べた"</span>, SplitMod
 
         <!-- Conjugation -->
         <section id="conjugation">
-            <h2>conjugation.py<span class="tag tag-dict">150+ patterns</span></h2>
-            <p>The main orchestration module that ties everything together.</p>
+            <h2>conjugation/<span class="tag tag-dict">Modular Package</span></h2>
+            <p>The conjugation module is now a package with dedicated submodules for better maintainability.</p>
+
+            <h3>Package Structure</h3>
+            <div class="tree">
+<div class="tree-item"><span class="folder">conjugation/</span></div>
+<div class="tree-item"><span class="indent">├── </span><span class="file">__init__.py</span><span class="comment"># Re-exports all public API</span></div>
+<div class="tree-item"><span class="indent">├── </span><span class="file">data.py</span><span class="comment"># Constants (~160 lines)</span></div>
+<div class="tree-item"><span class="indent">├── </span><span class="file">phrases.py</span><span class="comment"># Phrase patterns (~570 lines)</span></div>
+<div class="tree-item"><span class="indent">└── </span><span class="file">helpers.py</span><span class="comment"># Utility functions (~190 lines)</span></div>
+            </div>
+
+            <h3>data.py - Constants</h3>
+            <p>Static data dictionaries used throughout the API:</p>
+
+            <table>
+                <tr>
+                    <th>Dictionary</th>
+                    <th>Purpose</th>
+                    <th>Entries</th>
+                </tr>
+                <tr><td>GRAMMAR_MAP</td><td>Particle/auxiliary explanations</td><td>81</td></tr>
+                <tr><td>POS_MAP</td><td>Japanese → English POS names</td><td>15</td></tr>
+                <tr><td>AUXILIARY_DESCRIPTIONS</td><td>Auxiliary verb meanings</td><td>30+</td></tr>
+                <tr><td>CONJUGATION_DESCRIPTIONS</td><td>Conjugation form meanings</td><td>12</td></tr>
+            </table>
+
+            <h3 id="conjugation-compositional">Compositional Phrase Matching</h3>
+            <p>Instead of hardcoding every conjugation variant, we use a compositional system that auto-generates patterns:</p>
+
+            <pre><code><span class="comment"># Define base patterns with ending types</span>
+PHRASE_BASES = [
+    (<span class="string">"かもしれ"</span>, <span class="string">"ない"</span>, <span class="string">"might; may; possibly"</span>),
+    (<span class="string">"ことが"</span>, <span class="string">"できる"</span>, <span class="string">"can; be able to"</span>),
+    (<span class="string">"はずが"</span>, <span class="string">"ない"</span>, <span class="string">"can't be; impossible"</span>),
+    (<span class="string">"ほうが"</span>, <span class="string">"いい"</span>, <span class="string">"had better; should"</span>),
+    <span class="comment"># ... 20+ base patterns</span>
+]
+
+<span class="comment"># Define conjugation endings</span>
+ENDING_CONJUGATIONS = {
+    <span class="string">"ない"</span>: [
+        (<span class="string">"ない"</span>, <span class="string">""</span>),           <span class="comment"># plain</span>
+        (<span class="string">"ません"</span>, <span class="string">" (polite)"</span>),
+        (<span class="string">"なかった"</span>, <span class="string">" (past)"</span>),
+        (<span class="string">"ませんでした"</span>, <span class="string">" (polite past)"</span>),
+    ],
+    <span class="string">"できる"</span>: [
+        (<span class="string">"できる"</span>, <span class="string">""</span>),
+        (<span class="string">"できます"</span>, <span class="string">" (polite)"</span>),
+        (<span class="string">"できない"</span>, <span class="string">" (negative)"</span>),
+        (<span class="string">"できません"</span>, <span class="string">" (polite negative)"</span>),
+    ],
+    <span class="comment"># ... more ending types</span>
+}</code></pre>
+
+            <div class="callout callout-success">
+                <p><strong>Auto-Generated Variants:</strong> From "かもしれ" + "ない" base, the system generates: かもしれない, かもしれません, かもしれなかった, かもしれませんでした automatically!</p>
+            </div>
 
             <h3 id="conjugation-phrases">COMPOUND_PHRASES Dictionary</h3>
-            <p>Maps first token → list of (phrase, meaning) tuples for grammar pattern detection:</p>
+            <p>Fixed phrases that can't be composed are stored directly:</p>
 
             <pre><code>COMPOUND_PHRASES = {
     <span class="string">"か"</span>: [
-        (<span class="string">"かもしれない"</span>, <span class="string">"might; may; possibly"</span>),
         (<span class="string">"かどうか"</span>, <span class="string">"whether or not"</span>),
+        (<span class="string">"かのように"</span>, <span class="string">"as if; as though"</span>),
     ],
     <span class="string">"な"</span>: [
         (<span class="string">"なければならない"</span>, <span class="string">"must; have to"</span>),
         (<span class="string">"なきゃいけない"</span>, <span class="string">"must; have to (casual)"</span>),
-        (<span class="string">"なくてはいけない"</span>, <span class="string">"must; have to"</span>),
     ],
-    <span class="string">"て"</span>: [
-        (<span class="string">"てはいけない"</span>, <span class="string">"must not"</span>),
-        (<span class="string">"てもいい"</span>, <span class="string">"may; it's okay to"</span>),
+    <span class="string">"に"</span>: [
+        (<span class="string">"について"</span>, <span class="string">"about; concerning"</span>),
+        (<span class="string">"によって"</span>, <span class="string">"by means of; depending on"</span>),
+        (<span class="string">"にとって"</span>, <span class="string">"for; to (someone)"</span>),
     ],
-    <span class="comment"># ... 150+ more patterns</span>
-}</code></pre>
+    <span class="comment"># ... 80+ keys with 150+ total patterns</span>
+}
 
-            <div class="callout callout-info">
-                <p><strong>Key Insight:</strong> The dictionary key must match exactly what SudachiPy produces as the first token. Use <code>/tokenize</code> to verify.</p>
-            </div>
+<span class="comment"># Merge auto-generated phrases</span>
+<span class="keyword">for</span> first_char, phrases <span class="keyword">in</span> _COMPOSITIONAL_PHRASES.items():
+    COMPOUND_PHRASES[first_char].extend(phrases)
+
+<span class="comment"># Sort by length for greedy matching (longest first)</span>
+<span class="keyword">for</span> key <span class="keyword">in</span> COMPOUND_PHRASES:
+    COMPOUND_PHRASES[key] = sorted(COMPOUND_PHRASES[key], key=<span class="keyword">lambda</span> x: -len(x[0]))</code></pre>
 
             <h3>GRAMMAR_MAP Dictionary</h3>
             <p>Maps particles and auxiliaries to grammatical explanations:</p>
@@ -1019,8 +1138,13 @@ morphemes = tokenizer.tokenize(<span class="string">"食べた"</span>, SplitMod
     <span class="string">"に"</span>: <span class="string">"direction/time/target"</span>,
     <span class="string">"で"</span>: <span class="string">"location/means"</span>,
     <span class="string">"よ"</span>: <span class="string">"emphasis"</span>,
-    <span class="string">"ね"</span>: <span class="string">"confirmation"</span>,
-    <span class="comment"># ... more</span>
+    <span class="string">"ね"</span>: <span class="string">"isn't it?"</span>,
+    
+    <span class="comment"># Pronouns</span>
+    <span class="string">"彼"</span>: <span class="string">"he/him"</span>,
+    <span class="string">"彼女"</span>: <span class="string">"she/her"</span>,
+    <span class="string">"これ"</span>: <span class="string">"this"</span>,
+    <span class="comment"># ... 80+ entries</span>
 }</code></pre>
 
             <h3 id="conjugation-grouping">Morpheme Grouping Logic</h3>
@@ -1043,6 +1167,67 @@ morphemes = tokenizer.tokenize(<span class="string">"食べた"</span>, SplitMod
 
 <span class="comment"># Result:</span>
 [食べられなかった] <span class="comment"># Single compound verb</span></code></pre>
+
+            <h3>Na-Adjective + Copula Grouping</h3>
+            <p>Na-adjectives are grouped with their copula conjugations:</p>
+
+            <div class="jp-example">
+                <span class="japanese">好きじゃなかった</span>
+                <span class="arrow">→</span>
+                <span class="result">negative past (was not)</span>
+            </div>
+
+            <pre><code><span class="comment"># SudachiPy tokenization:</span>
+[好き] [じゃ] [なかっ] [た]
+  形状詞  助動詞  形容詞   助動詞
+
+<span class="comment"># Grouping detects patterns:</span>
+<span class="keyword">if</span> <span class="string">"じゃない"</span> <span class="keyword">in</span> compound_surface:
+    conjugation_hint = <span class="string">"negative (not)"</span>
+<span class="keyword">elif</span> <span class="string">"じゃなかった"</span> <span class="keyword">in</span> compound_surface:
+    conjugation_hint = <span class="string">"negative past (was not)"</span>
+<span class="keyword">elif</span> <span class="string">"だった"</span> <span class="keyword">in</span> compound_surface:
+    conjugation_hint = <span class="string">"past (was)"</span></code></pre>
+
+            <h3>I-Adjective Conjugation Detection</h3>
+            <p>I-adjectives conjugate by changing their ending:</p>
+
+            <table>
+                <tr>
+                    <th>Pattern</th>
+                    <th>Detection</th>
+                    <th>Example</th>
+                </tr>
+                <tr><td>〜くない</td><td>negative (not)</td><td>高くない</td></tr>
+                <tr><td>〜かった</td><td>past (was)</td><td>高かった</td></tr>
+                <tr><td>〜くなかった</td><td>negative past</td><td>高くなかった</td></tr>
+                <tr><td>〜くて</td><td>te-form (and)</td><td>高くて</td></tr>
+                <tr><td>〜ければ</td><td>conditional (if)</td><td>高ければ</td></tr>
+            </table>
+
+            <h3>Phrase Matching Algorithm</h3>
+            <pre><code><span class="keyword">def</span> <span class="function">try_match_compound_phrase</span>(morphemes, start_idx):
+    <span class="string">"""Match grammar phrases using greedy longest-first matching."""</span>
+    first_surface = morphemes[start_idx].surface()
+    
+    <span class="comment"># Check both full surface AND first character as keys</span>
+    <span class="comment"># (compositional phrases use first character)</span>
+    candidates = []
+    <span class="keyword">if</span> first_surface <span class="keyword">in</span> COMPOUND_PHRASES:
+        candidates.extend(COMPOUND_PHRASES[first_surface])
+    first_char = first_surface[<span class="number">0</span>]
+    <span class="keyword">if</span> first_char <span class="keyword">in</span> COMPOUND_PHRASES:
+        candidates.extend(COMPOUND_PHRASES[first_char])
+    
+    <span class="comment"># Build remaining text from morphemes</span>
+    remaining = <span class="string">""</span>.join(m.surface() <span class="keyword">for</span> m <span class="keyword">in</span> morphemes[start_idx:start_idx+10])
+    
+    <span class="comment"># Try longest matches first (greedy)</span>
+    <span class="keyword">for</span> phrase, meaning <span class="keyword">in</span> sorted(candidates, key=<span class="keyword">lambda</span> x: -len(x[<span class="number">0</span>])):
+        <span class="keyword">if</span> remaining.startswith(phrase):
+            <span class="keyword">return</span> (phrase, meaning, count_tokens(phrase))
+    
+    <span class="keyword">return</span> None</code></pre>
         </section>
 
         <!-- Adding Grammar -->

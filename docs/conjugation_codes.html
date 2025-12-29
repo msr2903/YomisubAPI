@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yomisub API - Conjugation Architecture</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a1a;
+            --bg-secondary: #12122a;
+            --bg-tertiary: #1a1a3a;
+            --bg-code: #0d0d20;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #2d2d5a;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem 0;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .nav-header {
+            padding: 0 1.5rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-header h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-header .subtitle {
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        .nav-section {
+            margin: 1rem 0;
+        }
+
+        .nav-section-title {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            padding: 0.5rem 1.5rem;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.4rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent-primary);
+            border-left-color: var(--accent-primary);
+        }
+
+        .nav-link.back {
+            color: var(--accent-primary);
+            font-weight: 500;
+        }
+
+        .nav-link.sub {
+            padding-left: 2.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Main Content */
+        main {
+            margin-left: 300px;
+            padding: 2.5rem 4rem;
+            max-width: 1100px;
+        }
+
+        section {
+            margin-bottom: 4rem;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border-color);
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 2rem 0 1rem;
+            color: var(--accent-primary);
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        /* Diagram Box */
+        .diagram {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .diagram .box { color: var(--accent-primary); }
+        .diagram .arrow { color: var(--warning); }
+        .diagram .label { color: var(--success); }
+        
+        /* Layer Visualization */
+        .layer-viz {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .layer-node {
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-primary);
+            border-radius: 8px;
+            padding: 1rem;
+            position: relative;
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        .layer-node small {
+            display: block;
+            margin-bottom: 0.25rem;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+        
+        .layer-node strong {
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .layer-arrow {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+        }
+        
+        .layer-result {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--success);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        td:first-child {
+            color: var(--accent-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            width: 30%;
+        }
+        
+        td:nth-child(2) {
+            color: var(--success);
+            font-weight: 500;
+            width: 20%;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .tag-base { background: rgba(59, 130, 246, 0.2); color: var(--info); }
+        .tag-aux { background: rgba(139, 92, 246, 0.2); color: var(--accent-secondary); }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .card h4 {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-tertiary);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: var(--accent-secondary);
+        }
+
+        /* Visual Components */
+        .puzzle-container {
+            display: flex;
+            gap: 4px;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .puzzle-piece {
+            padding: 0.8rem 1.2rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--accent-primary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+            position: relative;
+        }
+
+        .puzzle-piece small {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .puzzle-arrow {
+            color: var(--warning);
+            font-size: 1.5rem;
+        }
+
+        .step-viz {
+            border-left: 3px solid var(--border-color);
+            padding-left: 2rem;
+            margin: 2rem 0;
+        }
+
+        .step-item {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+
+        .step-item::before {
+            content: '';
+            position: absolute;
+            left: -2.45rem;
+            top: 0;
+            width: 1rem;
+            height: 1rem;
+            background: var(--bg-primary);
+            border: 3px solid var(--accent-primary);
+            border-radius: 50%;
+        }
+
+        .step-item.found::before {
+            border-color: var(--success);
+            background: var(--success);
+        }
+
+        .step-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .step-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1000px) {
+            nav { transform: translateX(-100%); }
+            main { margin-left: 0; padding: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-header">
+            <h1>Yomisub API</h1>
+            <div class="subtitle">Conjugation System</div>
+        </div>
+
+        <div class="nav-section">
+            <a href="developer.html" class="nav-link back">← Back to Developer Docs</a>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title">Architecture</div>
+            <a href="#layering-model" class="nav-link">Layering Model</a>
+            <a href="#deconjugation-logic" class="nav-link">Deconjugation Logic</a>
+            <a href="#recursive-processing" class="nav-link sub">Recursive Search</a>
+            <a href="#translation-logic" class="nav-link sub">Translation Logic</a>
+            <a href="#final-assembly" class="nav-link sub">Final Assembly</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Reference Codes</div>
+            <a href="#base-conjugations" class="nav-link">Base Conjugations</a>
+            <a href="#auxiliary-verbs" class="nav-link">Auxiliary Verbs</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Layering Model -->
+        <section id="layering-model">
+            <h2>Layering Model</h2>
+            <p>Japanese verb conjugation is compositional. In Yomisub, we model this as a series of "layers" wrapping a core verb. Each layer (an auxiliary) adds semantic meaning and transforms the verb's form for the next layer.</p>
+            
+            <p>For example, the phrase <strong>食べられなかった</strong> (was not able to eat) is built like an onion:</p>
+            
+            <div class="layer-viz">
+                <div class="layer-node">
+                    <small>Core</small>
+                    <strong>食べる</strong>
+                    <br><span style="font-size: 0.7rem; color: var(--text-secondary)">Eat</span>
+                </div>
+                <div class="layer-arrow">→</div>
+                <div class="layer-node">
+                    <small>Layer 1: Potential</small>
+                    <strong>+ RERU</strong>
+                    <br><span style="font-size: 0.7rem; color: var(--text-secondary)">Can</span>
+                </div>
+                <div class="layer-arrow">→</div>
+                <div class="layer-node">
+                    <small>Layer 2: Nai</small>
+                    <strong>+ NAI</strong>
+                    <br><span style="font-size: 0.7rem; color: var(--text-secondary)">Not</span>
+                </div>
+                <div class="layer-arrow">→</div>
+                <div class="layer-node layer-result">
+                    <small>Final Form: Past</small>
+                    <strong>+ TA</strong>
+                    <br><span style="font-size: 0.7rem; color: var(--text-secondary)">Did</span>
+                </div>
+            </div>
+
+            <p>In code, this corresponds to recursive calls in <code>conjugate_auxiliaries()</code>:</p>
+            <div class="diagram">
+<span class="box">Result</span> = conjugate(<span class="label">"食べる"</span>, <span class="box">[Auxiliary.RERU, Auxiliary.NAI]</span>, <span class="warning">Conjugation.TA</span>)
+
+1. <span class="label">食べる</span> + <span class="box">POTENTIAL</span> → <span class="label">食べられる</span> (Conjugated to Negative base for next step)
+2. <span class="label">食べられ</span> + <span class="box">NAI</span>       → <span class="label">食べられない</span> (Conjugated to Past base for next step)
+3. <span class="label">食べられなかっ</span> + <span class="box">TA</span>  → <span class="label">食べられなかった</span> (Final Result)
+            </div>
+        </section>
+
+        <!-- Deconjugation Logic -->
+        <section id="deconjugation-logic">
+            <h2>How It Works</h2>
+            <p>Instead of thinking about complex algorithms, imagine Japanese verbs are built from Lego blocks. Yomisub's job is to take a completed tower and figure out which blocks were used to build it.</p>
+            
+            <h3 id="recursive-processing">The "Building Block" Approach</h3>
+            <p>Let's look at a complex verb: <strong>食べさせられません</strong> (tabesaseraremasen). <br>Meaning: "won't be made to eat".</p>
+
+            <div class="puzzle-container">
+                <div class="puzzle-piece">
+                    <small>Core</small>
+                    食べる
+                </div>
+                <div class="puzzle-arrow">+</div>
+                <div class="puzzle-piece">
+                    <small>Inner Block</small>
+                    SASERU
+                </div>
+                <div class="puzzle-arrow">+</div>
+                <div class="puzzle-piece">
+                    <small>Middle Block</small>
+                    RARERU
+                </div>
+                <div class="puzzle-arrow">+</div>
+                <div class="puzzle-piece">
+                    <small>Final Block</small>
+                    MASEN
+                </div>
+            </div>
+
+            <p>To identify these blocks, Yomisub tries to rebuild the tower layer by layer until it matches.</p>
+
+            <div class="step-viz">
+                <div class="step-item">
+                    <div class="step-title">Level 1: Basic Checks</div>
+                    <div class="step-desc">First, we check if it's just a simple form of the verb <em>Taberu</em>.
+                    <br><code>Is it "Tabeta"? No. Is it "Tabete"? No.</code></div>
+                </div>
+                
+                <div class="step-item">
+                    <div class="step-title">Level 2: Adding One Block</div>
+                    <div class="step-desc">We try adding one auxiliary block.
+                    <br><code>Taberu + Potential = Tabereru? No.</code>
+                    <br><code>Taberu + Masu = Tabemasen? No.</code></div>
+                </div>
+
+                <div class="step-item">
+                    <div class="step-title">Level 3: Adding Two Blocks</div>
+                    <div class="step-desc">We try combinations of two blocks.
+                    <br><code>Taberu + Causative (Saseru) + Masu = Tabesasemasen? Close, but no.</code></div>
+                </div>
+
+                <div class="step-item found">
+                    <div class="step-title">Level 4: The Perfect Match</div>
+                    <div class="step-desc">Finally, we find the three-block combination that fits perfectly!
+                    <br><code>Taberu + Causative + Passive + Masu (Negative) = Tabesaseraremasen!</code>
+                    <br><span style="color: var(--success); font-weight: 600;">Match Found!</span></div>
+                </div>
+            </div>
+            
+            <h3 id="structural-rules">The Rules of Stacking</h3>
+            <p>Just like you can't put a roof on the ground floor, Japanese grammar has rules about which blocks can go where. Yomisub knows these rules to search faster.</p>
+
+            <table style="margin-top: 1rem">
+                <tr>
+                    <td style="width: 150px"><strong>Inner Blocks</strong><br><small>Start of the chain</small></td>
+                    <td>
+                        These change <em>who</em> is doing the action.<br>
+                        <span class="tag tag-aux">CAUSATIVE</span> <em>(Make someone do)</em><br>
+                        <span class="tag tag-aux">PASSIVE</span> <em>(Be done to)</em>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Middle Blocks</strong><br><small>Middle of the chain</small></td>
+                    <td>
+                        These change the <em>state</em> of the action.<br>
+                        <span class="tag tag-aux">POTENTIAL</span> <em>(Can do)</em><br>
+                        <span class="tag tag-aux">TE_IRU</span> <em>(Is doing)</em><br>
+                        <span class="tag tag-aux">GIVING</span> <em>(Give/Receive)</em>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Outer Blocks</strong><br><small>End of the chain</small></td>
+                    <td>
+                        These determine the <em>final form</em> (politeness, timeline).<br>
+                        <span class="tag tag-aux">MASU</span> <em>(Polite)</em><br>
+                        <span class="tag tag-aux">NAI</span> <em>(Negative)</em><br>
+                        <span class="tag tag-aux">TAI</span> <em>(Want to)</em>
+                    </td>
+                </tr>
+            </table>
+
+            <h3 id="final-assembly">The Result</h3>
+            <p>Once we find the matching blocks, we bundle them up and send them back to you.</p>
+            
+            <table style="width: 100%; margin-top: 1rem;">
+                <tr>
+                    <th>Field</th>
+                    <th>Example Result</th>
+                    <th>What it means</th>
+                </tr>
+                <tr>
+                    <td><code>chain</code></td>
+                    <td><code>[CAUSATIVE, PASSIVE, MASU]</code></td>
+                    <td>The specific list of blocks we found.</td>
+                </tr>
+                <tr>
+                    <td><code>summary</code></td>
+                    <td>"causative + passive + polite negative"</td>
+                    <td>A simple description of what happened to the verb.</td>
+                </tr>
+                <tr>
+                    <td><code>translation_hint</code></td>
+                    <td>"won't be made to eat"</td>
+                    <td>We try to translate the combined meaning into English.</td>
+                </tr>
+            </table>
+        </section>
+        <!-- Base Conjugations -->
+        <section id="base-conjugations">
+            <h2>Base Conjugations <span class="tag tag-base">Enum</span></h2>
+            <p>These codes represent the fundamental inflectional forms of Japanese verbs and adjectives. They are returned in the <code>conjugation</code> field of the analysis response.</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>NEGATIVE</td><td>negative</td><td>not</td><td><em>tabenai</em> (won't eat)</td></tr>
+                    <tr><td>CONJUNCTIVE</td><td>masu-stem</td><td>connective</td><td><em>tabe</em> (eat...)</td></tr>
+                    <tr><td>DICTIONARY</td><td>dictionary</td><td>plain present</td><td><em>taberu</em> (eat)</td></tr>
+                    <tr><td>CONDITIONAL</td><td>conditional</td><td>if/when</td><td><em>tabereba</em> (if eat)</td></tr>
+                    <tr><td>IMPERATIVE</td><td>imperative</td><td>command</td><td><em>tabero</em> (eat!)</td></tr>
+                    <tr><td>VOLITIONAL</td><td>volitional</td><td>let's/will</td><td><em>tabeyou</em> (let's eat)</td></tr>
+                    <tr><td>TE</td><td>te-form</td><td>and/request</td><td><em>tabete</em> (eat and)</td></tr>
+                    <tr><td>TA</td><td>past</td><td>did</td><td><em>tabeta</em> (ate)</td></tr>
+                    <tr><td>TARA</td><td>conditional-past</td><td>if/when</td><td><em>tabetara</em> (if ate)</td></tr>
+                    <tr><td>TARI</td><td>representative</td><td>things like</td><td><em>tabetari</em> (eating etc.)</td></tr>
+                    <tr><td>ZU</td><td>classical-negative</td><td>without</td><td><em>tabezu</em> (without eating)</td></tr>
+                    <tr><td>NU</td><td>classical-negative</td><td>not</td><td><em>tabenu</em> (not eat)</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Auxiliary Verbs -->
+        <section id="auxiliary-verbs">
+            <h2>Auxiliary Verbs <span class="tag tag-aux">Enum</span></h2>
+            <p>These codes represent helper verbs that attach to base forms to add meaning (potential, desire, passive, etc.). They appear in the <code>auxiliaries</code> list in the analysis response.</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>POTENTIAL</td><td>potential</td><td>can/able to</td><td><em>taberareru</em> (can eat)</td></tr>
+                    <tr><td>MASU</td><td>polite</td><td>polite form</td><td><em>tabemasu</em> (eat)</td></tr>
+                    <tr><td>NAI</td><td>negative</td><td>not</td><td><em>tabenai</em> (don't eat)</td></tr>
+                    <tr><td>TAI</td><td>desiderative</td><td>want to</td><td><em>tabetai</em> (want to eat)</td></tr>
+                    <tr><td>TAGARU</td><td>desiderative</td><td>seems to want</td><td><em>tabetagaru</em> (seems to want to eat)</td></tr>
+                    <tr><td>HOSHII</td><td>desiderative</td><td>want someone to</td><td><em>tabete hoshii</em> (want you to eat)</td></tr>
+                    <tr><td>RASHII</td><td>evidential</td><td>apparently</td><td><em>taberu rashii</em> (seems to eat)</td></tr>
+                    <tr><td>SOUDA_HEARSAY</td><td>hearsay</td><td>I heard that</td><td><em>taberu souda</em> (heard he eats)</td></tr>
+                    <tr><td>SOUDA_CONJECTURE</td><td>conjecture</td><td>looks like</td><td><em>tabesouda</em> (looks like eating)</td></tr>
+                    <tr><td>SERU_SASERU</td><td>causative</td><td>make/let do</td><td><em>tabesaseru</em> (make eat)</td></tr>
+                    <tr><td>SHORTENED_CAUSATIVE</td><td>causative</td><td>make/let do</td><td><em>ikasu</em> (make go)</td></tr>
+                    <tr><td>RERU_RARERU</td><td>passive/potential</td><td>is done/can do</td><td><em>taberareru</em> (be eaten)</td></tr>
+                    <tr><td>CAUSATIVE_PASSIVE</td><td>causative-passive</td><td>is made to do</td><td><em>tabesaserareru</em> (made to eat)</td></tr>
+                    <tr><td>SHORTENED_CAUSATIVE_PASSIVE</td><td>causative-passive</td><td>is made to do</td><td><em>ikasareru</em> (made to go)</td></tr>
+                    <tr><td>AGERU</td><td>benefactive</td><td>do for someone</td><td><em>tabete ageru</em> (eat for)</td></tr>
+                    <tr><td>SASHIAGERU</td><td>benefactive-humble</td><td>humbly do for</td><td><em>tabete sashiageru</em> (humbly eat for)</td></tr>
+                    <tr><td>YARU</td><td>benefactive-casual</td><td>do for (casual)</td><td><em>tabete yaru</em> (eat for)</td></tr>
+                    <tr><td>MORAU</td><td>receptive</td><td>have done for me</td><td><em>tabete morau</em> (have someone eat)</td></tr>
+                    <tr><td>ITADAKU</td><td>receptive-humble</td><td>humbly receive</td><td><em>tabete itadaku</em> (receive eating)</td></tr>
+                    <tr><td>KURERU</td><td>benefactive-to-me</td><td>do for me</td><td><em>tabete kureru</em> (eat for me)</td></tr>
+                    <tr><td>KUDASARU</td><td>benefactive-humble</td><td>kindly do for me</td><td><em>tabete kudasaru</em> (kindly eat)</td></tr>
+                    <tr><td>TE_IRU</td><td>progressive/resultative</td><td>is doing/has done</td><td><em>tabeteiru</em> (is eating)</td></tr>
+                    <tr><td>TE_ARU</td><td>resultative</td><td>has been done</td><td><em>kaite aru</em> (is written)</td></tr>
+                    <tr><td>MIRU</td><td>tentative</td><td>try doing</td><td><em>tabete miru</em> (try eating)</td></tr>
+                    <tr><td>IKU</td><td>directional</td><td>go on doing</td><td><em>yatte iku</em> (go on doing)</td></tr>
+                    <tr><td>KURU</td><td>directional</td><td>come to do</td><td><em>yatte kuru</em> (come up)</td></tr>
+                    <tr><td>OKU</td><td>preparatory</td><td>do in advance</td><td><em>tabete oku</em> (eat ahead)</td></tr>
+                    <tr><td>SHIMAU</td><td>completive</td><td>end up doing</td><td><em>tabete shimau</em> (finish eating)</td></tr>
+                    <tr><td>TE_ORU</td><td>progressive-humble</td><td>is doing (humble)</td><td><em>tabete oru</em> (is eating)</td></tr>
+                    <tr><td>SUGIRU</td><td>excessive</td><td>too much</td><td><em>tabesugiru</em> (eat too much)</td></tr>
+                    <tr><td>YASUI</td><td>ease</td><td>easy to</td><td><em>tabeyasui</em> (easy to eat)</td></tr>
+                    <tr><td>NIKUI</td><td>difficulty</td><td>hard to</td><td><em>tabenikui</em> (hard to eat)</td></tr>
+                    <tr><td>HAJIMERU</td><td>inchoative</td><td>start doing</td><td><em>tabehajimeru</em> (start eating)</td></tr>
+                    <tr><td>OWARU</td><td>terminative</td><td>finish doing</td><td><em>tabeowaru</em> (finish eating)</td></tr>
+                    <tr><td>TSUZUKERU</td><td>continuative</td><td>continue doing</td><td><em>tabetsuzukeru</em> (keep eating)</td></tr>
+                    <tr><td>DASU</td><td>sudden</td><td>burst into</td><td><em>hashiridasu</em> (start running)</td></tr>
+                    <tr><td>GARU</td><td>appearance</td><td>seems to want</td><td><em>kowagaru</em> (act scared)</td></tr>
+                    <tr><td>SOU_APPEARANCE</td><td>appearance</td><td>looks like</td><td><em>oishisou</em> (looks tasty)</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+</body>
+</html>

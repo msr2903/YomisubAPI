@@ -1,9 +1,13 @@
 """Yomisub FastAPI application - Japanese text analysis API."""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from models import (
     AnalyzeRequest,
@@ -64,6 +68,30 @@ app = FastAPI(
     version="0.2.0",
     lifespan=lifespan,
 )
+
+
+# ============================================================================
+# Middleware & Static Files
+# ============================================================================
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount static files
+BASE_DIR = Path(__file__).resolve().parent
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+
+
+@app.get("/interface", include_in_schema=False)
+async def interface():
+    """Serve the analyzer interface."""
+    return FileResponse(BASE_DIR / "static" / "index.html")
 
 
 # ============================================================================

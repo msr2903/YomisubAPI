@@ -16,6 +16,7 @@ dependencies = [
     "pydantic>=2.10.0",
     "jaconv>=0.4.1",
     "lemminflect>=0.2.3",
+    "aiofiles>=25.1.0",
 ]
 
 [project.optional-dependencies]
