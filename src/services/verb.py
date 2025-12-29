@@ -485,7 +485,12 @@ def _conjugate_auxiliary(
                     raise ValueError(f"Unhandled conjugation for masu: {conj}")
         
         case Auxiliary.NAI:
-            base = conjugate(verb, Conjugation.NEGATIVE, type2)[0]
+            if verb.endswith("い"):
+                 # Handle I-adjective negation (e.g. 痛い -> 痛くない)
+                 # base should be Renyoukei (e.g. 痛く) because logic below adds "ない", "なく", etc.
+                 base = verb[:-1] + "く"
+            else:
+                 base = conjugate(verb, Conjugation.NEGATIVE, type2)[0]
             match conj:
                 case Conjugation.NEGATIVE:
                     return [base + "なくはない"]
@@ -907,7 +912,7 @@ def deconjugate_verb(
         Auxiliary.KURU, Auxiliary.OKU, Auxiliary.SHIMAU,
         Auxiliary.TE_IRU, Auxiliary.TE_ARU, Auxiliary.TE_ORU,
         Auxiliary.POTENTIAL, Auxiliary.RERU_RARERU, Auxiliary.SERU_SASERU,
-        Auxiliary.SUGIRU,
+        Auxiliary.SUGIRU, Auxiliary.YASUI, Auxiliary.NIKUI,
     ]
     depth2_finals = [
         Auxiliary.MASU, Auxiliary.SOUDA_CONJECTURE, Auxiliary.SOUDA_HEARSAY,

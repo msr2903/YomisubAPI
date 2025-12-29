@@ -192,6 +192,9 @@ def generate_translation_hint(
         case Conjugation.TA:
             if hint.endswith("ing"):
                 pass  # Keep -ing form for processing
+            elif "easy to " in hint or "hard to " in hint:
+                # Adjectival phrases (easy/hard to X) take "was"
+                hint = f"was {hint}"
             elif "can " in hint and "not" in hint:
                 # Potential + negative + past: "couldn't eat" (not "didn't eat")
                 verb = hint.replace("not ", "").replace("can ", "")

@@ -36,7 +36,9 @@ def run_tests():
         ("食べすぎる", "verb", "over-eat"),
         ("飲みすぎない", "verb", "not over-drink"),
         ("読みやすい", "verb", "easy to read"),
+        ("読みやすかった", "verb", "was easy to read"),
         ("分かりにくい", "verb", "hard to understand"),
+        ("分かりにくくなかった", "verb", "was not hard to understand"),
 
         # Irregular
         ("勉強した", "verb", "studied"), # suru verb
