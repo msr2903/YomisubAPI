@@ -143,19 +143,25 @@ def analyze_text(text: str) -> AnalyzeResponse:
         meaning = details["meaning"] if details else None
         tags = details["tags"] if details else []
         
-        # Check for "Ra-nuki" (colloquial potential) if meaning not found
+        # Check for "Ra-nuki" (colloquial potential)
         # e.g. 食べれる (tabereru) -> 食べる (taberu)
-        if not meaning and main_pos == "動詞" and base_form.endswith("れる") and len(base_form) > 2:
+        if main_pos == "動詞" and base_form.endswith("れる") and len(base_form) > 2:
             potential_base = base_form[:-2] + "る"
-            # Try lookup (without reading restriction mostly safe here)
-            ra_details = jmdict.lookup_details(potential_base) 
-            if ra_details:
-                base_form = potential_base
-                meaning = ra_details["meaning"]
-                tags = ra_details["tags"]
-                # Update reading if possible (heuristic)
-                if lookup_reading and lookup_reading.endswith("れる"):
-                    lookup_reading = lookup_reading[:-2] + "る"
+            # Try correction even if meaning exists, because many ra-nuki forms are now in dictionaries
+            # but we want to deconjugate them back to their root for better analysis.
+            # We skip this for common non-potential verbs that happen to end in -reru.
+            skip_correction = {"入れる", "忘れる", "訪れる", "触れる", "離れる", "現れる", "流れる", "溢れる", "零れる", "分かれる"}
+            
+            if base_form not in skip_correction:
+                # Always try to find a more fundamental base verb if it ends in -reru
+                ra_details = jmdict.lookup_details(potential_base) 
+                if ra_details:
+                    base_form = potential_base
+                    meaning = ra_details["meaning"]
+                    tags = ra_details["tags"]
+                    # Update reading if possible
+                    if lookup_reading and lookup_reading.endswith("れる"):
+                        lookup_reading = lookup_reading[:-2] + "る"
         
         if not meaning:
             meaning = GRAMMAR_MAP.get(base_form) or GRAMMAR_MAP.get(surface)
