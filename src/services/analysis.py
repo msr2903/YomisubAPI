@@ -180,6 +180,10 @@ def analyze_text(text: str) -> AnalyzeResponse:
                 next_main = next_pos[0] if next_pos else ""
                 next_sub = next_pos[1] if len(next_pos) > 1 else ""
                 
+                # Check if this starts a compound phrase (e.g. だろう, でしょう)
+                if try_match_compound_phrase(morphemes, j):
+                    break
+                
                 # Allow SOU (conjecture) which Sudachi labels as Shape/Na-adj
                 is_sou = (next_m.dictionary_form() == "そう" and next_main == "形状詞")
                 
@@ -202,6 +206,10 @@ def analyze_text(text: str) -> AnalyzeResponse:
                 next_pos = next_m.part_of_speech()
                 next_main = next_pos[0] if next_pos else ""
                 ns = next_m.surface()
+                
+                # Check if this starts a compound phrase (e.g. ではありません)
+                if try_match_compound_phrase(morphemes, j):
+                    break
                 
                 can_attach = (
                     next_main in {"助動詞"} or
@@ -354,6 +362,10 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
                 next_main = next_m.part_of_speech()[0] if next_m.part_of_speech() else ""
                 ns = next_m.surface()
                 
+                # Check if this starts a compound phrase (e.g. ではありません)
+                if try_match_compound_phrase(morphemes, j):
+                    break
+                
                 can_attach = next_main in {"助動詞", "形容詞"} or ns in {"じゃ", "では", "で"} or (ns == "は" and prev_was_de)
                 if can_attach:
                     compound_surface += ns
@@ -479,6 +491,10 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
                 next_main = next_pos[0] if next_pos else ""
                 next_sub = next_pos[1] if len(next_pos) > 1 else ""
                 
+                # Check if this starts a compound phrase (e.g. だろう, でしょう)
+                if try_match_compound_phrase(morphemes, j):
+                    break
+                
                 if can_attach_morpheme(next_main, next_sub, next_m.surface()):
                     compound_surface += next_m.surface()
                     compound_reading += jaconv.kata2hira(next_m.reading_form())
@@ -493,6 +509,11 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
                 next_m = morphemes[j]
                 next_main = next_m.part_of_speech()[0] if next_m.part_of_speech() else ""
                 ns = next_m.surface()
+                
+                # Check if this starts a compound phrase (e.g. ではありません)
+                # If so, don't attach - let it be handled as a separate phrase
+                if try_match_compound_phrase(morphemes, j):
+                    break
                 
                 can_attach = next_main in {"助動詞", "形容詞"} or ns in {"じゃ", "では", "で"} or (ns == "は" and prev_was_de)
                 if can_attach:
@@ -527,6 +548,11 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
                 next_m = morphemes[j]
                 next_main = next_m.part_of_speech()[0] if next_m.part_of_speech() else ""
                 ns = next_m.surface()
+                
+                # Check if this starts a compound phrase (e.g. ではありません)
+                # If so, don't attach - let it be handled as a separate phrase
+                if try_match_compound_phrase(morphemes, j):
+                    break
                 
                 can_attach = next_main in {"助動詞", "形容詞"} or ns in {"じゃ", "では", "で"} or (ns == "は" and prev_was_de)
                 if can_attach:
