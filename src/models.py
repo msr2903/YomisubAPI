@@ -109,10 +109,30 @@ class SimpleAnalyzeResponse(BaseModel):
 
 
 class FullAnalyzeResponse(BaseModel):
-    """Response for /analyze_full."""
+    """Response for /analyze_pro."""
     phrases: list[PhraseToken]
     count: int
     text_result: str = Field(..., description="Human-readable text format")
+
+
+class UltraToken(BaseModel):
+    """Token in ultra analysis with complete JMDict data."""
+    surface: str = Field(..., description="Surface form")
+    base: str = Field(..., description="Dictionary form")
+    reading: str = Field(..., description="Reading in hiragana")
+    pos: str = Field(..., description="Part of speech (English)")
+    meanings: list[str] = Field(default_factory=list, description="All meanings from JMDict")
+    tags: list[str] = Field(default_factory=list, description="All tags from JMDict")
+    grammar_note: str | None = Field(None, description="Grammar explanation")
+    conjugation: ConjugationInfo | None = Field(None, description="Conjugation details")
+
+
+class UltraAnalyzeResponse(BaseModel):
+    """Response for /analyze_ultra with complete JMDict data."""
+    tokens: list[UltraToken]
+    count: int
+    text_result: str = Field(..., description="Human-readable text format")
+
 
 
 class DeconjugateResponse(BaseModel):

@@ -32,9 +32,11 @@ from models import (
     TokenResponse,
     VocabularyItem,
     PhraseToken,
+    UltraToken,
     AnalyzeResponse,
     SimpleAnalyzeResponse,
     FullAnalyzeResponse,
+    UltraAnalyzeResponse,
     DeconjugateResponse,
     ConjugateResponse,
 )
@@ -672,6 +674,203 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
     
     return FullAnalyzeResponse(phrases=phrases, count=len(phrases), text_result="\n".join(text_lines))
 
+
+def analyze_ultra(text: str) -> UltraAnalyzeResponse:
+    """Ultra analysis with ALL meanings and tags from JMDict."""
+    analyzer = JapaneseAnalyzer.get_instance()
+    tokenizer = analyzer._tokenizer
+    jmdict = analyzer._jmdict
+    
+    tokens: list[UltraToken] = []
+    text_lines: list[str] = []
+    seen_bases: set[str] = set()
+    
+    morphemes = list(tokenizer.tokenize(text, SplitMode.C))
+    i = 0
+    
+    while i < len(morphemes):
+        m = morphemes[i]
+        pos_tuple = m.part_of_speech()
+        main_pos = pos_tuple[0] if pos_tuple else ""
+        
+        if main_pos in SKIP_POS:
+            i += 1
+            continue
+        
+        # Check for compound grammar phrases
+        phrase_match = try_match_compound_phrase(morphemes, i)
+        if phrase_match:
+            phrase, phrase_meaning, tokens_consumed = phrase_match
+            
+            # Check if this is a copula phrase with detailed breakdown
+            copula_info = get_copula_info(phrase)
+            if copula_info:
+                base_form, default_meaning, layers = copula_info
+                
+                # Look up base form in JMDict for all meanings
+                jmdict_data = jmdict.lookup_all_meanings(base_form)
+                meanings = jmdict_data["meanings"] if jmdict_data else [default_meaning]
+                tags = jmdict_data["tags"] if jmdict_data else ["Copula"]
+                
+                conj_layers = [
+                    ConjugationLayer(form="", type=layer[0], english=layer[1], meaning=layer[2])
+                    for layer in layers
+                ]
+                layer_summary = " + ".join(layer[1] for layer in layers) if layers else "dictionary"
+                conj_info = ConjugationInfo(
+                    chain=conj_layers,
+                    summary=layer_summary,
+                    translation_hint=default_meaning,
+                )
+                tokens.append(UltraToken(
+                    surface=phrase, base=base_form, reading=phrase, pos="Copula",
+                    meanings=meanings, tags=tags, grammar_note=phrase_meaning,
+                    conjugation=conj_info,
+                ))
+                text_lines.append(f"{phrase}（{base_form}）[Copula] = {'; '.join(meanings[:3])}")
+            else:
+                tokens.append(UltraToken(
+                    surface=phrase, base=phrase, reading=phrase, pos="Phrase",
+                    meanings=[phrase_meaning], tags=["Grammar"],
+                    grammar_note=phrase_meaning, conjugation=None,
+                ))
+                text_lines.append(f"{phrase}（{phrase}）[Phrase] = {phrase_meaning}")
+            i += tokens_consumed
+            continue
+        
+        surface = m.surface()
+        base_form = m.dictionary_form()
+        reading = jaconv.kata2hira(m.reading_form())
+        pos_english = POS_MAP.get(main_pos, main_pos)
+        
+        # Collect compounds
+        compound_surface, compound_reading = surface, reading
+        j = i + 1
+        
+        # Group verbs with auxiliaries
+        if main_pos == "動詞":
+            while j < len(morphemes):
+                next_m = morphemes[j]
+                next_pos = next_m.part_of_speech()
+                next_main = next_pos[0] if next_pos else ""
+                next_sub = next_pos[1] if len(next_pos) > 1 else ""
+                
+                if try_match_compound_phrase(morphemes, j):
+                    break
+                
+                if can_attach_morpheme(next_main, next_sub, next_m.surface()):
+                    compound_surface += next_m.surface()
+                    compound_reading += jaconv.kata2hira(next_m.reading_form())
+                    j += 1
+                else:
+                    break
+        
+        # Group na-adjectives with copula
+        elif main_pos == "形状詞":
+            prev_was_de = False
+            while j < len(morphemes):
+                next_m = morphemes[j]
+                next_main = next_m.part_of_speech()[0] if next_m.part_of_speech() else ""
+                ns = next_m.surface()
+                
+                if try_match_compound_phrase(morphemes, j):
+                    break
+                
+                can_attach = next_main in {"助動詞", "形容詞"} or ns in {"じゃ", "では", "で"} or (ns == "は" and prev_was_de)
+                if can_attach:
+                    compound_surface += ns
+                    compound_reading += jaconv.kata2hira(next_m.reading_form())
+                    prev_was_de = (ns == "で")
+                    j += 1
+                else:
+                    break
+        
+        # Group i-adjectives
+        elif main_pos == "形容詞":
+            while j < len(morphemes):
+                next_m = morphemes[j]
+                next_pos = next_m.part_of_speech()
+                next_main = next_pos[0] if next_pos else ""
+                next_sub = next_pos[1] if len(next_pos) > 1 else ""
+                ns = next_m.surface()
+                
+                can_attach = (next_main == "形容詞" and next_sub == "非自立可能") or next_main == "助動詞" or ns in {"て", "ば"}
+                if can_attach:
+                    compound_surface += ns
+                    compound_reading += jaconv.kata2hira(next_m.reading_form())
+                    j += 1
+                else:
+                    break
+        
+        # Group nouns with copula
+        elif main_pos == "名詞":
+            prev_was_de = False
+            while j < len(morphemes):
+                next_m = morphemes[j]
+                next_main = next_m.part_of_speech()[0] if next_m.part_of_speech() else ""
+                ns = next_m.surface()
+                
+                if try_match_compound_phrase(morphemes, j):
+                    break
+                
+                can_attach = next_main in {"助動詞", "形容詞"} or ns in {"じゃ", "では", "で"} or (ns == "は" and prev_was_de)
+                if can_attach:
+                    compound_surface += ns
+                    compound_reading += jaconv.kata2hira(next_m.reading_form())
+                    prev_was_de = (ns == "で")
+                    j += 1
+                else:
+                    break
+        
+        if base_form in seen_bases:
+            i = j
+            continue
+        seen_bases.add(base_form)
+        
+        meanings, tags, grammar_note = [], [], None
+        
+        # Look up ALL meanings and tags from JMDict
+        if main_pos in {"名詞", "動詞", "形容詞", "形状詞", "副詞", "代名詞", "接続詞"}:
+            lookup_reading = reading
+            if base_form != surface or main_pos in {"動詞", "形容詞"}:
+                base_m = list(tokenizer.tokenize(base_form, SplitMode.C))
+                if base_m:
+                    lookup_reading = jaconv.kata2hira(base_m[0].reading_form())
+            
+            jmdict_data = jmdict.lookup_all_meanings(base_form, lookup_reading)
+            if jmdict_data:
+                meanings = jmdict_data["meanings"]
+                tags = jmdict_data["tags"]
+        
+        grammar_note = GRAMMAR_MAP.get(base_form) or GRAMMAR_MAP.get(surface)
+        
+        # Conjugation analysis
+        conjugation_info = None
+        if main_pos == "動詞" and compound_surface != base_form:
+            type2 = is_verb_type2(pos_tuple)
+            meaning_str = meanings[0] if meanings else ""
+            conjugation_info = try_deconjugate_verb(compound_surface, base_form, type2, meaning_str)
+        elif main_pos == "形状詞" and compound_surface != base_form:
+            conjugation_info = _analyze_na_adjective_conjugation(compound_surface)
+        elif main_pos == "形容詞" and compound_surface != base_form:
+            conjugation_info = _analyze_i_adjective_conjugation(compound_surface)
+        elif main_pos == "名詞" and compound_surface != base_form:
+            conjugation_info = _analyze_noun_copula(compound_surface)
+        
+        tokens.append(UltraToken(
+            surface=compound_surface, base=base_form, reading=compound_reading,
+            pos=pos_english, meanings=meanings, tags=tags,
+            grammar_note=grammar_note, conjugation=conjugation_info,
+        ))
+        
+        meanings_str = "; ".join(meanings[:3]) if meanings else (grammar_note or "")
+        line = f"{compound_surface}（{compound_reading}）[{pos_english}] = {meanings_str}"
+        if conjugation_info:
+            line += f" → {conjugation_info.summary}"
+        text_lines.append(line)
+        i = j
+    
+    return UltraAnalyzeResponse(tokens=tokens, count=len(tokens), text_result="\n".join(text_lines))
 
 def _analyze_na_adjective_conjugation(compound: str) -> ConjugationInfo | None:
     """Analyze na-adjective conjugation patterns."""

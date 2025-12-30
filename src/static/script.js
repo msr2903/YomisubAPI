@@ -8,15 +8,32 @@ const emptyState = document.getElementById('empty-state');
 
 // State
 let currentTokens = [];
+let currentMode = 'pro'; // Default mode
 
-async function analyze(type) {
+// Mode selector
+const modeButtons = document.querySelectorAll('.mode-btn');
+modeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        modeButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = btn.dataset.mode;
+    });
+});
+
+async function analyze() {
     const text = inputArea.value.trim();
     if (!text) return;
 
     setLoading(true);
     
     try {
-        const endpoint = type === 'simple' ? '/analyze_simple' : '/analyze_full';
+        const endpoints = {
+            'lite': '/analyze_lite',
+            'pro': '/analyze_pro',
+            'ultra': '/analyze_ultra'
+        };
+        const endpoint = endpoints[currentMode] || '/analyze_pro';
+        
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
@@ -28,7 +45,7 @@ async function analyze(type) {
         if (!response.ok) throw new Error('Analysis failed');
 
         const data = await response.json();
-        renderResults(data, type);
+        renderResults(data, currentMode);
     } catch (err) {
         console.error(err);
         resultsArea.innerHTML = `<div class="error">Error: ${err.message}</div>`;
@@ -43,12 +60,19 @@ function setLoading(isLoading) {
     resultsArea.style.opacity = isLoading ? '0.5' : '1';
 }
 
-function renderResults(data, type) {
+function renderResults(data, mode) {
     resultsArea.innerHTML = '';
     currentTokens = [];
 
-    // Normalized list based on type
-    const items = type === 'simple' ? data.vocabulary : data.phrases;
+    // Normalized list based on mode
+    let items;
+    if (mode === 'lite') {
+        items = data.vocabulary;
+    } else if (mode === 'ultra') {
+        items = data.tokens;
+    } else {
+        items = data.phrases;
+    }
     
     if (!items || items.length === 0) {
         resultsArea.innerHTML = '<div class="no-results">No tokens found.</div>';
@@ -59,7 +83,7 @@ function renderResults(data, type) {
         // Create token element
         const tokenEl = document.createElement('div');
         tokenEl.className = 'token';
-        tokenEl.textContent = item.word || item.surface; // Handle both simplified and full
+        tokenEl.textContent = item.word || item.surface;
         tokenEl.dataset.index = index;
         
         // Store item for click handler
@@ -70,76 +94,102 @@ function renderResults(data, type) {
             document.querySelectorAll('.token').forEach(t => t.classList.remove('active'));
             tokenEl.classList.add('active');
             
-            showDetails(item, type);
+            showDetails(item, mode);
         };
 
         resultsArea.appendChild(tokenEl);
     });
 }
 
-function showDetails(item, type) {
+function showDetails(item, mode) {
     emptyState.style.display = 'none';
     detailsContent.style.display = 'block';
 
-    // Extract fields based on type
+    // Extract fields based on mode
     const surface = item.word || item.surface;
     const base = item.base;
     const reading = item.reading;
-    const meaning = item.meaning;
     
     let conjugationHtml = '';
     
     // Conjugation logic
-    if (type === 'simple' && item.conjugation_hint) {
+    if (mode === 'lite' && item.conjugation_hint) {
         conjugationHtml = `
             <div class="detail-section">
                 <div class="section-title">Conjugation</div>
                 <div class="conjugation-hint">${item.conjugation_hint}</div>
             </div>
         `;
-    } else if (type === 'full' && item.conjugation) {
-        const chain = item.conjugation.chain.map(layer => `
+    } else if ((mode === 'pro' || mode === 'ultra') && item.conjugation && item.conjugation.chain.length > 0) {
+        const chain = item.conjugation.chain.map((layer, idx) => `
             <div class="tree-node">
-                <span style="color:var(--accent-primary)">${layer.form}</span> 
+                <span class="layer-number">${idx + 1}.</span>
+                <span style="color:var(--accent-primary)">${layer.english}</span>
                 <span style="opacity:0.6">(${layer.type})</span>
-                <div style="font-size:0.8em; margin-top:2px;">↳ ${layer.meaning}</div>
+                <div style="font-size:0.8em; margin-top:2px; margin-left:1.5rem;">↳ ${layer.meaning}</div>
             </div>
         `).join('');
         
         conjugationHtml = `
             <div class="detail-section">
-                <div class="section-title">Conjugation Structure</div>
+                <div class="section-title">Conjugation Layers</div>
                 <div class="conjugation-tree">
-                    <div style="margin-bottom:0.5rem; color:var(--text-primary)">
+                    <div style="margin-bottom:0.5rem; color:var(--text-primary); font-weight:500">
                         ${item.conjugation.summary}
                     </div>
                     ${chain}
                     ${item.conjugation.translation_hint ? 
                         `<div style="margin-top:0.5rem; color:var(--success); font-size:0.9em">
-                            Use: "${item.conjugation.translation_hint}"
+                            Hint: "${item.conjugation.translation_hint}"
                         </div>` : ''}
                 </div>
             </div>
         `;
     }
 
-    // Meaning logic (simple string or potentially complex if I expand later, but currently string)
-    // Sometimes meaning contains semicolons or newlines
-    const meaninList = meaning ? meaning.split(/;|\//).filter(m => m.trim().length > 0)
-        .map(m => `<li class="meaning-item">${m.trim()}</li>`).join('') : '<li class="meaning-item" style="opacity:0.5">No definition found</li>';
-
-
-    // Tags (Full only usually)
-    let tagsHtml = '';
-    if (item.tags && item.tags.length > 0) {
-        tagsHtml = `
-            <div style="margin-bottom:1rem;">
-                ${item.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+    // Meaning logic - handle single string or array
+    let meaningHtml = '';
+    if (mode === 'ultra' && item.meanings && item.meanings.length > 0) {
+        // Ultra mode: show all meanings as a list
+        const meaningsList = item.meanings.map(m => 
+            `<li class="meaning-item">${m}</li>`
+        ).join('');
+        meaningHtml = `
+            <div class="detail-section">
+                <div class="section-title">All Meanings</div>
+                <ul class="meaning-list">
+                    ${meaningsList}
+                </ul>
+            </div>
+        `;
+    } else {
+        // Pro/Lite mode: single meaning string
+        const meaning = item.meaning || '';
+        const meaningList = meaning ? meaning.split(/;|\//).filter(m => m.trim().length > 0)
+            .map(m => `<li class="meaning-item">${m.trim()}</li>`).join('') 
+            : '<li class="meaning-item" style="opacity:0.5">No definition found</li>';
+        meaningHtml = `
+            <div class="detail-section">
+                <div class="section-title">Meaning</div>
+                <ul class="meaning-list">
+                    ${meaningList}
+                </ul>
             </div>
         `;
     }
 
-    // Grammar Note (Full only)
+    // Tags
+    let tagsHtml = '';
+    const tags = item.tags || [];
+    if (tags.length > 0) {
+        tagsHtml = `
+            <div style="margin-bottom:1rem;">
+                ${tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+            </div>
+        `;
+    }
+
+    // Grammar Note (Pro and Ultra)
     let grammarHtml = '';
     if (item.grammar_note) {
         grammarHtml = `
@@ -162,14 +212,7 @@ function showDetails(item, type) {
             </div>
             
             ${tagsHtml}
-
-            <div class="detail-section">
-                <div class="section-title">Meaning</div>
-                <ul class="meaning-list">
-                    ${meaninList}
-                </ul>
-            </div>
-
+            ${meaningHtml}
             ${grammarHtml}
             ${conjugationHtml}
         </div>

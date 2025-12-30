@@ -504,6 +504,123 @@ class JMDictionary:
         """
         return self._index_kanji.get(word) or self._index_kana.get(word)
     
+    def lookup_all_meanings(self, word: str, reading: str | None = None) -> dict | None:
+        """
+        Look up ALL meanings and tags for a word (sorted by popularity).
+        
+        Returns:
+            {
+                "meanings": ["meaning1", "meaning2", ...],  # All meanings from all senses
+                "tags": ["tag1", "tag2", ...],  # All tags combined
+            }
+        """
+        entry = self._find_best_entry(word, reading, is_counter=False, include_names=True)
+        if not entry:
+            return None
+        
+        # Handle Name entries
+        if entry.get("_is_name"):
+            translations = entry.get("translation", [])
+            if not translations:
+                return None
+            
+            all_meanings = []
+            tags = {"Name"}
+            
+            for t in translations:
+                texts = [x.get("text", "") for x in t.get("translation", [])]
+                all_meanings.extend([m for m in texts if m])
+                for nt in t.get("type", []):
+                    tags.add(nt.title())
+            
+            return {
+                "meanings": all_meanings[:10],  # Limit to 10 meanings
+                "tags": sorted(list(tags))
+            }
+        
+        senses = entry.get("sense", [])
+        if not senses:
+            return None
+        
+        # POS and Misc tags mapping
+        POS_TAGS = {
+            "vt": "Transitive",
+            "vi": "Intransitive",
+            "uk": "Usually Kana",
+            "ctr": "Counter",
+            "vs": "Suru verb",
+            "v1": "Ichidan verb",
+            "v5": "Godan verb",
+            "adj-i": "I-adjective",
+            "adj-na": "Na-adjective",
+            "adj-no": "No-adjective",
+            "adv": "Adverb",
+            "n": "Noun",
+            "pn": "Pronoun",
+            "exp": "Expression",
+            "int": "Interjection",
+            "conj": "Conjunction",
+        }
+        MISC_TAGS = {
+            "uk": "Usually Kana",
+            "sl": "Slang",
+            "col": "Colloquial",
+            "hon": "Honorific",
+            "hum": "Humble",
+            "pol": "Polite",
+            "abbr": "Abbreviation",
+            "arch": "Archaic",
+            "obs": "Obsolete",
+            "sens": "Sensitive",
+            "vulg": "Vulgar",
+            "id": "Idiomatic",
+            "proverb": "Proverb",
+            "comp": "Computer",
+            "med": "Medical",
+            "food": "Food",
+            "ling": "Linguistics",
+            "math": "Mathematics",
+            "physics": "Physics",
+            "biol": "Biology",
+            "chem": "Chemistry",
+            "geol": "Geology",
+            "law": "Law",
+            "econ": "Economics",
+            "sports": "Sports",
+            "music": "Music",
+            "MA": "Martial Arts",
+            "sumo": "Sumo",
+            "shogi": "Shogi",
+            "go": "Go (game)",
+        }
+        
+        all_meanings = []
+        all_tags = set()
+        
+        for sense in senses:
+            # Extract all glosses from this sense
+            glosses = [g.get("text", "") for g in sense.get("gloss", []) if g.get("text")]
+            all_meanings.extend(glosses)
+            
+            # Extract POS tags
+            for pos in sense.get("partOfSpeech", []):
+                if pos in POS_TAGS:
+                    all_tags.add(POS_TAGS[pos])
+                elif pos.startswith("v5") or pos.startswith("v1"):
+                    all_tags.add("Verb")
+                elif "adj" in pos:
+                    all_tags.add("Adjective")
+            
+            # Extract misc/field tags
+            for m in sense.get("misc", []) + sense.get("field", []):
+                if m in MISC_TAGS:
+                    all_tags.add(MISC_TAGS[m])
+        
+        return {
+            "meanings": all_meanings[:15],  # Limit to 15 meanings
+            "tags": sorted(list(all_tags))
+        }
+    
     @property
     def is_loaded(self) -> bool:
         """Check if dictionary was successfully loaded."""

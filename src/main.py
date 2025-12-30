@@ -16,6 +16,7 @@ from models import (
     AnalyzeResponse,
     SimpleAnalyzeResponse,
     FullAnalyzeResponse,
+    UltraAnalyzeResponse,
     DeconjugateResponse,
     ConjugateResponse,
 )
@@ -24,6 +25,7 @@ from services.analysis import (
     analyze_text,
     analyze_simple,
     analyze_full,
+    analyze_ultra,
     deconjugate_word,
     conjugate_word,
     tokenize_raw,
@@ -60,12 +62,13 @@ app = FastAPI(
 
 ## Endpoints
 - `/analyze` - Full structured analysis
-- `/analyze_simple` - Vocabulary-focused (no grammar words)
-- `/analyze_full` - All tokens with grammar explanations
+- `/analyze_lite` - Vocabulary-focused (no grammar words)
+- `/analyze_pro` - All tokens with grammar explanations
+- `/analyze_ultra` - Complete JMDict data with all meanings and tags
 - `/deconjugate` - Deep analysis of single conjugated word
 - `/conjugate` - Generate conjugations from dictionary form
 """,
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -133,8 +136,8 @@ async def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
 
 
-@app.post("/analyze_simple", response_model=SimpleAnalyzeResponse, tags=["Analysis"])
-async def analyze_simple_endpoint(request: AnalyzeRequest) -> SimpleAnalyzeResponse:
+@app.post("/analyze_lite", response_model=SimpleAnalyzeResponse, tags=["Analysis"])
+async def analyze_lite_endpoint(request: AnalyzeRequest) -> SimpleAnalyzeResponse:
     """
     Vocabulary-focused analysis. Filters out grammar words.
     
@@ -149,16 +152,30 @@ async def analyze_simple_endpoint(request: AnalyzeRequest) -> SimpleAnalyzeRespo
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
 
 
-@app.post("/analyze_full", response_model=FullAnalyzeResponse, tags=["Analysis"])
-async def analyze_full_endpoint(request: AnalyzeRequest) -> FullAnalyzeResponse:
+@app.post("/analyze_pro", response_model=FullAnalyzeResponse, tags=["Analysis"])
+async def analyze_pro_endpoint(request: AnalyzeRequest) -> FullAnalyzeResponse:
     """
-    Full analysis including ALL tokens with grammar explanations.
+    Pro analysis including ALL tokens with grammar explanations.
     
     Includes particles, auxiliaries, and complete conjugation breakdowns.
     Best for studying sentence structure.
     """
     try:
         return analyze_full(request.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
+
+
+@app.post("/analyze_ultra", response_model=UltraAnalyzeResponse, tags=["Analysis"])
+async def analyze_ultra_endpoint(request: AnalyzeRequest) -> UltraAnalyzeResponse:
+    """
+    Ultra analysis with complete JMDict data.
+    
+    Returns all meanings and all tags from JMDict for each word,
+    sorted by popularity. Best for comprehensive vocabulary study.
+    """
+    try:
+        return analyze_ultra(request.text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
 
