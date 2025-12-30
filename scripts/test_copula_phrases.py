@@ -26,8 +26,21 @@ for sentence in test_sentences:
     print(f"\n=== {sentence} ===")
     result = analyze_full(sentence)
     for phrase in result.phrases:
-        meaning = phrase.meaning or phrase.grammar_note or ""
+        pos = phrase.pos
+        base = phrase.base
+        meaning = phrase.meaning or ""
+        grammar = phrase.grammar_note or ""
+        
+        print(f"  {phrase.surface}")
+        print(f"    Base: {base}")
+        print(f"    POS: {pos}")
         if meaning:
-            print(f"  {phrase.surface} [{phrase.pos}] = {meaning}")
-        else:
-            print(f"  {phrase.surface} [{phrase.pos}]")
+            print(f"    Meaning: {meaning}")
+        if grammar:
+            print(f"    Grammar: {grammar}")
+        if phrase.conjugation and phrase.conjugation.chain:
+            print(f"    Conjugation Layers:")
+            for i, layer in enumerate(phrase.conjugation.chain, 1):
+                print(f"      {i}. {layer.english} ({layer.meaning})")
+            print(f"    Summary: {phrase.conjugation.summary}")
+            print(f"    Hint: {phrase.conjugation.translation_hint}")

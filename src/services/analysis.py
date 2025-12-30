@@ -53,6 +53,7 @@ from services.conjugation.data import (
 from services.conjugation.phrases import (
     COMPOUND_PHRASES,
     try_match_compound_phrase,
+    get_copula_info,
 )
 from services.conjugation.helpers import (
     get_auxiliary_info,
@@ -96,25 +97,48 @@ def analyze_text(text: str) -> AnalyzeResponse:
             for k in range(consumed_count):
                 phrase_reading += jaconv.kata2hira(morphemes[i+k].reading_form())
 
-            # Format translation hint
-            # "must; have to" -> "must"
-            clean_meaning = phrase_meaning.split(";")[0].strip()
-            
-            # Create a Phrase Token
-            response_tokens.append(TokenResponse(
-                word=phrase_text,
-                base=phrase_text,
-                reading=phrase_reading,
-                pos="Phrase",
-                meaning=phrase_meaning,
-                tags=["Grammar"],
-                components=[], 
-                conjugation=ConjugationInfo(
-                    chain=[ConjugationLayer(type="PHRASE", form="", english=clean_meaning, meaning=phrase_meaning)],
-                    summary=clean_meaning,
-                    translation_hint=clean_meaning
+            # Check if this is a copula phrase with detailed breakdown
+            copula_info = get_copula_info(phrase_text)
+            if copula_info:
+                base_form, meaning, layers = copula_info
+                # Build conjugation layers
+                conj_layers = [
+                    ConjugationLayer(form="", type=layer[0], english=layer[1], meaning=layer[2])
+                    for layer in layers
+                ]
+                layer_summary = " + ".join(layer[1] for layer in layers) if layers else "dictionary"
+                conj_info = ConjugationInfo(
+                    chain=conj_layers,
+                    summary=layer_summary,
+                    translation_hint=meaning,
                 )
-            ))
+                response_tokens.append(TokenResponse(
+                    word=phrase_text,
+                    base=base_form,
+                    reading=phrase_reading,
+                    pos="Copula",
+                    meaning=meaning,
+                    tags=["Grammar"],
+                    components=[], 
+                    conjugation=conj_info
+                ))
+            else:
+                # Format translation hint for non-copula phrases
+                clean_meaning = phrase_meaning.split(";")[0].strip()
+                response_tokens.append(TokenResponse(
+                    word=phrase_text,
+                    base=phrase_text,
+                    reading=phrase_reading,
+                    pos="Phrase",
+                    meaning=phrase_meaning,
+                    tags=["Grammar"],
+                    components=[], 
+                    conjugation=ConjugationInfo(
+                        chain=[ConjugationLayer(type="PHRASE", form="", english=clean_meaning, meaning=phrase_meaning)],
+                        summary=clean_meaning,
+                        translation_hint=clean_meaning
+                    )
+                ))
             i += consumed_count
             continue
             
@@ -466,11 +490,33 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
         phrase_match = try_match_compound_phrase(morphemes, i)
         if phrase_match:
             phrase, phrase_meaning, tokens_consumed = phrase_match
-            phrases.append(PhraseToken(
-                surface=phrase, base=phrase, reading=phrase, pos="Phrase",
-                meaning=phrase_meaning, grammar_note=phrase_meaning, conjugation=None,
-            ))
-            text_lines.append(f"{phrase}（{phrase}）[Phrase] 【{phrase_meaning}】")
+            
+            # Check if this is a copula phrase with detailed breakdown
+            copula_info = get_copula_info(phrase)
+            if copula_info:
+                base_form, meaning, layers = copula_info
+                # Build conjugation layers
+                conj_layers = [
+                    ConjugationLayer(form="", type=layer[0], english=layer[1], meaning=layer[2])
+                    for layer in layers
+                ]
+                layer_summary = " + ".join(layer[1] for layer in layers) if layers else "dictionary"
+                conj_info = ConjugationInfo(
+                    chain=conj_layers,
+                    summary=layer_summary,
+                    translation_hint=meaning,
+                )
+                phrases.append(PhraseToken(
+                    surface=phrase, base=base_form, reading=phrase, pos="Copula",
+                    meaning=meaning, grammar_note=phrase_meaning, conjugation=conj_info,
+                ))
+                text_lines.append(f"{phrase}（{base_form}）[Copula] 【{phrase_meaning}】")
+            else:
+                phrases.append(PhraseToken(
+                    surface=phrase, base=phrase, reading=phrase, pos="Phrase",
+                    meaning=phrase_meaning, grammar_note=phrase_meaning, conjugation=None,
+                ))
+                text_lines.append(f"{phrase}（{phrase}）[Phrase] 【{phrase_meaning}】")
             i += tokens_consumed
             continue
         

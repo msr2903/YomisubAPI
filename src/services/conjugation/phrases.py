@@ -1,6 +1,71 @@
 """Phrase pattern matching system for grammar expressions."""
 
 # =============================================================================
+# Copula Phrase Definitions with Base Forms and Layers
+# =============================================================================
+# Each copula form maps to: (base_form, meaning, layers)
+# layers: list of (type, english, meaning) tuples
+COPULA_PHRASES: dict[str, tuple[str, str, list[tuple[str, str, str]]]] = {
+    # である family (formal copula)
+    "である": ("である", "is", []),
+    "であります": ("である", "is", [
+        ("POLITE", "polite", "polite form"),
+    ]),
+    "ではある": ("である", "is (contrastive)", [
+        ("CONTRASTIVE", "contrastive", "emphasis/contrast"),
+    ]),
+    "ではない": ("ではある", "is not", [
+        ("NEGATIVE", "negative", "not"),
+    ]),
+    "ではなかった": ("ではある", "was not", [
+        ("NEGATIVE", "negative", "not"),
+        ("PAST", "past", "past tense"),
+    ]),
+    "ではありません": ("ではある", "is not", [
+        ("NEGATIVE", "negative", "not"),
+        ("POLITE", "polite", "polite form"),
+    ]),
+    "ではありませんでした": ("ではある", "was not", [
+        ("NEGATIVE", "negative", "not"),
+        ("POLITE", "polite", "polite form"),
+        ("PAST", "past", "past tense"),
+    ]),
+    # じゃ family (casual contraction of では)
+    "じゃない": ("じゃある", "isn't", [
+        ("NEGATIVE", "negative", "not"),
+    ]),
+    "じゃなかった": ("じゃある", "wasn't", [
+        ("NEGATIVE", "negative", "not"),
+        ("PAST", "past", "past tense"),
+    ]),
+    "じゃありません": ("じゃある", "isn't", [
+        ("NEGATIVE", "negative", "not"),
+        ("POLITE", "polite", "polite form"),
+    ]),
+    "じゃありませんでした": ("じゃある", "wasn't", [
+        ("NEGATIVE", "negative", "not"),
+        ("POLITE", "polite", "polite form"),
+        ("PAST", "past", "past tense"),
+    ]),
+    # です family (polite copula)
+    "です": ("です", "is", []),
+    "でした": ("です", "was", [
+        ("PAST", "past", "past tense"),
+    ]),
+    "でしょう": ("です", "probably", [
+        ("CONJECTURAL", "conjectural", "probably/I think"),
+    ]),
+    # だ family (plain copula)
+    "だ": ("だ", "is", []),
+    "だった": ("だ", "was", [
+        ("PAST", "past", "past tense"),
+    ]),
+    "だろう": ("だ", "probably", [
+        ("CONJECTURAL", "conjectural", "probably/I think"),
+    ]),
+}
+
+# =============================================================================
 # Compositional Phrase Matching System
 # =============================================================================
 # Instead of hardcoding every variant (ない, ません, なかった, ませんでした),
@@ -355,28 +420,8 @@ COMPOUND_PHRASES = {
     ],
     # === じゃ patterns ===
     "じゃ": [
-        ("じゃない", "copula + negative (casual): isn't"),
-        ("じゃなかった", "copula + negative + past (casual): wasn't"),
-        ("じゃありません", "copula + negative + polite (casual): isn't"),
-        ("じゃありませんでした", "copula + negative + polite + past (casual): wasn't"),
         ("じゃないですか", "isn't it?"),
         ("じゃん", "isn't it? (casual)"),
-    ],
-    # === で patterns (copula forms) ===
-    "で": [
-        ("ではありません", "copula + negative + polite: is not"),
-        ("ではありませんでした", "copula + negative + polite + past: was not"),
-        ("ではなかった", "copula + negative + past: wasn't"),
-        ("ではない", "copula + negative: is not"),
-        ("ではある", "copula (formal) + contrastive: is (with emphasis)"),
-        ("である", "copula (formal): is"),
-        ("であります", "copula (formal) + polite: is"),
-        ("でした", "copula (polite) + past: was"),
-        ("でしょう", "copula (polite) + conjectural: probably"),
-    ],
-    # === だろう patterns ===
-    "だろう": [
-        ("だろう", "copula (plain) + conjectural: probably"),
     ],
     # === らしい patterns ===
     "らしい": [
@@ -597,14 +642,39 @@ def try_match_compound_phrase(morphemes: list, start_idx: int) -> tuple[str, str
     """
     Try to match a compound phrase starting at start_idx.
     Returns (phrase, meaning, tokens_consumed) or None.
+    
+    For copula phrases, also check COPULA_PHRASES for detailed breakdown.
     """
     if start_idx >= len(morphemes):
         return None
     
     first_surface = morphemes[start_idx].surface()
     
-    # Check both the full first surface AND just the first character
-    # (compositional phrases use first character as key)
+    # Build the remaining text from morphemes
+    remaining = "".join(m.surface() for m in morphemes[start_idx:start_idx + 10])
+    
+    # Check COPULA_PHRASES first (longest match)
+    copula_matches = [(k, v) for k, v in COPULA_PHRASES.items() if remaining.startswith(k)]
+    if copula_matches:
+        # Get longest match
+        phrase, (base, meaning, layers) = max(copula_matches, key=lambda x: len(x[0]))
+        # Count tokens consumed
+        consumed = 0
+        chars_matched = 0
+        for m in morphemes[start_idx:]:
+            if chars_matched >= len(phrase):
+                break
+            chars_matched += len(m.surface())
+            consumed += 1
+        # Build meaning string from layers
+        if layers:
+            layer_desc = " + ".join(layer[1] for layer in layers)
+            full_meaning = f"{layer_desc}: {meaning}"
+        else:
+            full_meaning = meaning
+        return (phrase, full_meaning, consumed)
+    
+    # Check regular COMPOUND_PHRASES
     candidates = []
     if first_surface in COMPOUND_PHRASES:
         candidates.extend(COMPOUND_PHRASES[first_surface])
@@ -614,9 +684,6 @@ def try_match_compound_phrase(morphemes: list, start_idx: int) -> tuple[str, str
     
     if not candidates:
         return None
-    
-    # Build the remaining text from morphemes
-    remaining = "".join(m.surface() for m in morphemes[start_idx:start_idx + 10])
     
     # Check each possible phrase (longest first for greedy match)
     for phrase, meaning in sorted(candidates, key=lambda x: -len(x[0])):
@@ -632,6 +699,14 @@ def try_match_compound_phrase(morphemes: list, start_idx: int) -> tuple[str, str
             return (phrase, meaning, consumed)
     
     return None
+
+
+def get_copula_info(phrase: str) -> tuple[str, str, list[tuple[str, str, str]]] | None:
+    """
+    Get detailed copula information for a phrase.
+    Returns (base_form, meaning, layers) or None if not a copula phrase.
+    """
+    return COPULA_PHRASES.get(phrase)
 
 
 def match_phrase_suffix(text: str) -> tuple[str, str, str] | None:
