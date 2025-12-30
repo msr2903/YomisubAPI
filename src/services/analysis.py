@@ -510,6 +510,8 @@ def process_lite(text: str) -> SimpleAnalyzeResponse:
         if main_pos == "動詞":
             if is_potential_form:
                 first_meaning = meaning.split(';')[0].split(',')[0].strip() if meaning else "do"
+                if first_meaning.lower().startswith("to "):
+                    first_meaning = first_meaning[3:].strip()
                 conjugation_hint = f"potential (can {first_meaning})"
             elif compound_surface != base_form:
                 type2 = is_verb_type2(pos_tuple)
@@ -728,6 +730,8 @@ def process_pro(text: str) -> FullAnalyzeResponse:
         if main_pos == "動詞":
             if is_potential_form:
                  first_meaning = meaning.split(';')[0].split(',')[0].strip() if meaning else "do"
+                 if first_meaning.lower().startswith("to "):
+                     first_meaning = first_meaning[3:].strip()
                  conjugation_info = ConjugationInfo(
                     chain=[ConjugationLayer(
                         form=original_base,
@@ -959,6 +963,8 @@ def process_ultra(text: str) -> UltraAnalyzeResponse:
             meaning_str = meanings[0] if meanings else ""
             if is_potential_form:
                  first_meaning = meaning_str.split(';')[0].split(',')[0].strip() if meaning_str else "do"
+                 if first_meaning.lower().startswith("to "):
+                     first_meaning = first_meaning[3:].strip()
                  conjugation_info = ConjugationInfo(
                     chain=[ConjugationLayer(
                         form=original_base,

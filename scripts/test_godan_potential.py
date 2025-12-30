@@ -33,6 +33,7 @@ def test_godan_potential():
             print(f"  Meaning: {token.meaning[:50]}...")
             if token.conjugation:
                 print(f"  Conj:    {token.conjugation.summary}")
+                print(f"  Hint:    {token.conjugation.translation_hint}")
             else:
                 print("  Conj:    None")
                 
