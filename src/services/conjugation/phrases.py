@@ -355,9 +355,28 @@ COMPOUND_PHRASES = {
     ],
     # === じゃ patterns ===
     "じゃ": [
-        ("じゃない", "isn't; not"),
+        ("じゃない", "copula + negative (casual): isn't"),
+        ("じゃなかった", "copula + negative + past (casual): wasn't"),
+        ("じゃありません", "copula + negative + polite (casual): isn't"),
+        ("じゃありませんでした", "copula + negative + polite + past (casual): wasn't"),
         ("じゃないですか", "isn't it?"),
         ("じゃん", "isn't it? (casual)"),
+    ],
+    # === で patterns (copula forms) ===
+    "で": [
+        ("ではありません", "copula + negative + polite: is not"),
+        ("ではありませんでした", "copula + negative + polite + past: was not"),
+        ("ではなかった", "copula + negative + past: wasn't"),
+        ("ではない", "copula + negative: is not"),
+        ("ではある", "copula (formal) + contrastive: is (with emphasis)"),
+        ("である", "copula (formal): is"),
+        ("であります", "copula (formal) + polite: is"),
+        ("でした", "copula (polite) + past: was"),
+        ("でしょう", "copula (polite) + conjectural: probably"),
+    ],
+    # === だろ patterns ===
+    "だろ": [
+        ("だろう", "copula (plain) + conjectural: probably"),
     ],
     # === らしい patterns ===
     "らしい": [
