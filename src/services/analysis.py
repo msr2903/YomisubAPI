@@ -68,6 +68,8 @@ from services.conjugation.helpers import (
     try_deconjugate_verb,
     try_deconjugate_adjective,
     can_attach_morpheme,
+    detect_godan_potential,
+    is_valid_godan_potential,
 )
 
 
@@ -173,6 +175,8 @@ def analyze_text(text: str) -> AnalyzeResponse:
         details = jmdict.lookup_details(base_form, lookup_reading, is_counter=is_counter)
         meaning = details["meaning"] if details else None
         tags = details["tags"] if details else []
+        is_potential_form = False
+        original_base = base_form  # Keep track of original for conjugation
         
         # Check for "Ra-nuki" (colloquial potential)
         # e.g. 食べれる (tabereru) -> 食べる (taberu)
@@ -187,12 +191,30 @@ def analyze_text(text: str) -> AnalyzeResponse:
                 # Always try to find a more fundamental base verb if it ends in -reru
                 ra_details = jmdict.lookup_details(potential_base) 
                 if ra_details:
+                    original_base = base_form
                     base_form = potential_base
                     meaning = ra_details["meaning"]
                     tags = ra_details["tags"]
+                    is_potential_form = True
                     # Update reading if possible
                     if lookup_reading and lookup_reading.endswith("れる"):
                         lookup_reading = lookup_reading[:-2] + "る"
+        
+        # Check for Godan potential forms (飲める → 飲む, 書ける → 書く, etc.)
+        # This handles cases where Sudachi tokenizes the potential as its own dictionary form
+        if main_pos == "動詞" and not is_potential_form:
+            godan_result = detect_godan_potential(surface, base_form)
+            if godan_result:
+                true_base, _ = godan_result
+                # Validate the true base exists in JMDict
+                if is_valid_godan_potential(surface, true_base, jmdict):
+                    godan_details = jmdict.lookup_details(true_base)
+                    if godan_details:
+                        original_base = base_form
+                        base_form = true_base
+                        meaning = godan_details["meaning"]
+                        tags = godan_details["tags"]
+                        is_potential_form = True
         
         if not meaning:
             meaning = GRAMMAR_MAP.get(base_form) or GRAMMAR_MAP.get(surface)
@@ -291,9 +313,22 @@ def analyze_text(text: str) -> AnalyzeResponse:
         
         # Try deconjugation for verbs
         conjugation_info = None
-        if main_pos == "動詞" and compound_surface != base_form:
-            type2 = is_verb_type2(pos_tuple)
-            conjugation_info = try_deconjugate_verb(compound_surface, base_form, type2, meaning or "")
+        if main_pos == "動詞":
+            if is_potential_form:
+                # Detected as potential form (Godan or Ra-nuki)
+                conjugation_info = ConjugationInfo(
+                    chain=[ConjugationLayer(
+                        form=original_base,
+                        type="POTENTIAL",
+                        english="potential",
+                        meaning="can/able to"
+                    )],
+                    summary="potential",
+                    translation_hint=f"can {meaning.split(';')[0].split(',')[0].strip() if meaning else 'do'}"
+                )
+            elif compound_surface != base_form:
+                type2 = is_verb_type2(pos_tuple)
+                conjugation_info = try_deconjugate_verb(compound_surface, base_form, type2, meaning or "")
         elif main_pos == "形容詞" and compound_surface != base_form:
             conjugation_info = try_deconjugate_adjective(compound_surface, base_form, meaning or "")
         
@@ -448,14 +483,39 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
             reading = jaconv.kata2hira(m.reading_form())
         
         meaning = jmdict.lookup(base_form, reading, is_counter=is_counter) or ""
+        is_potential_form = False
+        original_base = base_form
+        
+        # Check for Godan potential forms (飲める → 飲む, 書ける → 書く, etc.)
+        if main_pos == "動詞":
+            godan_result = detect_godan_potential(surface, base_form)
+            if godan_result:
+                true_base, _ = godan_result
+                # Validate the true base exists in JMDict
+                if is_valid_godan_potential(surface, true_base, jmdict):
+                    true_meaning = jmdict.lookup(true_base)
+                    if true_meaning:
+                        original_base = base_form
+                        base_form = true_base
+                        meaning = true_meaning
+                        is_potential_form = True
+                        # Update reading
+                        true_morphs = list(tokenizer.tokenize(true_base, SplitMode.C))
+                        if true_morphs:
+                            reading = jaconv.kata2hira(true_morphs[0].reading_form())
+        
         meaning_display = meaning[:40] + "..." if len(meaning) > 40 else meaning
         
         # Generate conjugation hint for verbs
-        if main_pos == "動詞" and compound_surface != base_form:
-            type2 = is_verb_type2(pos_tuple)
-            info = try_deconjugate_verb(compound_surface, base_form, type2, meaning)
-            if info:
-                conjugation_hint = f"{info.summary} ({info.translation_hint})" if info.translation_hint else info.summary
+        if main_pos == "動詞":
+            if is_potential_form:
+                first_meaning = meaning.split(';')[0].split(',')[0].strip() if meaning else "do"
+                conjugation_hint = f"potential (can {first_meaning})"
+            elif compound_surface != base_form:
+                type2 = is_verb_type2(pos_tuple)
+                info = try_deconjugate_verb(compound_surface, base_form, type2, meaning)
+                if info:
+                    conjugation_hint = f"{info.summary} ({info.translation_hint})" if info.translation_hint else info.summary
         
         vocabulary.append(VocabularyItem(
             word=compound_surface, base=base_form, reading=reading,
@@ -642,13 +702,45 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
             if meaning and len(meaning) > 30:
                 meaning = meaning[:30] + "..."
         
+        is_potential_form = False
+        original_base = base_form
+
+        # Check for Godan potential forms
+        if main_pos == "動詞":
+            godan_result = detect_godan_potential(surface, base_form)
+            if godan_result:
+                true_base, _ = godan_result
+                if is_valid_godan_potential(surface, true_base, jmdict):
+                    godan_details = jmdict.lookup_details(true_base)
+                    if godan_details:
+                        original_base = base_form
+                        base_form = true_base
+                        meaning = godan_details["meaning"]
+                        tags = godan_details["tags"]
+                        is_potential_form = True
+                        if meaning and len(meaning) > 30:
+                            meaning = meaning[:30] + "..."
+        
         grammar_note = GRAMMAR_MAP.get(base_form) or GRAMMAR_MAP.get(surface)
         
         # Conjugation analysis
         conjugation_info = None
-        if main_pos == "動詞" and compound_surface != base_form:
-            type2 = is_verb_type2(pos_tuple)
-            conjugation_info = try_deconjugate_verb(compound_surface, base_form, type2, meaning or "")
+        if main_pos == "動詞":
+            if is_potential_form:
+                 first_meaning = meaning.split(';')[0].split(',')[0].strip() if meaning else "do"
+                 conjugation_info = ConjugationInfo(
+                    chain=[ConjugationLayer(
+                        form=original_base,
+                        type="POTENTIAL",
+                        english="potential",
+                        meaning="can/able to"
+                    )],
+                    summary="potential",
+                    translation_hint=f"can {first_meaning}"
+                )
+            elif compound_surface != base_form:
+                type2 = is_verb_type2(pos_tuple)
+                conjugation_info = try_deconjugate_verb(compound_surface, base_form, type2, meaning or "")
         elif main_pos == "形状詞" and compound_surface != base_form:
             conjugation_info = _analyze_na_adjective_conjugation(compound_surface)
         elif main_pos == "形容詞" and compound_surface != base_form:
@@ -842,14 +934,44 @@ def analyze_ultra(text: str) -> UltraAnalyzeResponse:
                 meanings = jmdict_data["meanings"]
                 tags = jmdict_data["tags"]
         
+        is_potential_form = False
+        original_base = base_form
+
+        # Check for Godan potential forms
+        if main_pos == "動詞":
+            godan_result = detect_godan_potential(surface, base_form)
+            if godan_result:
+                true_base, _ = godan_result
+                if is_valid_godan_potential(surface, true_base, jmdict):
+                    godan_data = jmdict.lookup_all_meanings(true_base)
+                    if godan_data:
+                        original_base = base_form
+                        base_form = true_base
+                        meanings = godan_data["meanings"]
+                        tags = godan_data["tags"]
+                        is_potential_form = True
+
         grammar_note = GRAMMAR_MAP.get(base_form) or GRAMMAR_MAP.get(surface)
         
         # Conjugation analysis
         conjugation_info = None
-        if main_pos == "動詞" and compound_surface != base_form:
-            type2 = is_verb_type2(pos_tuple)
+        if main_pos == "動詞":
             meaning_str = meanings[0] if meanings else ""
-            conjugation_info = try_deconjugate_verb(compound_surface, base_form, type2, meaning_str)
+            if is_potential_form:
+                 first_meaning = meaning_str.split(';')[0].split(',')[0].strip() if meaning_str else "do"
+                 conjugation_info = ConjugationInfo(
+                    chain=[ConjugationLayer(
+                        form=original_base,
+                        type="POTENTIAL",
+                        english="potential",
+                        meaning="can/able to"
+                    )],
+                    summary="potential",
+                    translation_hint=f"can {first_meaning}"
+                )
+            elif compound_surface != base_form:
+                type2 = is_verb_type2(pos_tuple)
+                conjugation_info = try_deconjugate_verb(compound_surface, base_form, type2, meaning_str)
         elif main_pos == "形状詞" and compound_surface != base_form:
             conjugation_info = _analyze_na_adjective_conjugation(compound_surface)
         elif main_pos == "形容詞" and compound_surface != base_form:

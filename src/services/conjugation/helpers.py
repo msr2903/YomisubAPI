@@ -34,6 +34,74 @@ def is_hiragana(char: str) -> bool:
     return '\u3040' <= char <= '\u309f'
 
 
+# Godan potential form endings: e-row kana + る
+# Maps from potential ending to (original ending, verb class for conjugation pattern)
+GODAN_POTENTIAL_MAP = {
+    # う-verbs: う → える
+    "える": "う",   # 買う → 買える
+    # く-verbs: く → ける  
+    "ける": "く",   # 書く → 書ける
+    # ぐ-verbs: ぐ → げる
+    "げる": "ぐ",   # 泳ぐ → 泳げる
+    # す-verbs: す → せる
+    "せる": "す",   # 話す → 話せる
+    # つ-verbs: つ → てる
+    "てる": "つ",   # 待つ → 待てる
+    # ぬ-verbs: ぬ → ねる
+    "ねる": "ぬ",   # 死ぬ → 死ねる
+    # ぶ-verbs: ぶ → べる
+    "べる": "ぶ",   # 遊ぶ → 遊べる
+    # む-verbs: む → める
+    "める": "む",   # 読む → 読める, 飲む → 飲める
+    # る-verbs (consonant stem): る → れる
+    "れる": "る",   # 作る → 作れる, 取る → 取れる
+}
+
+
+def detect_godan_potential(surface: str, base: str) -> tuple[str, bool] | None:
+    """
+    Detect if a verb is a Godan potential form that Sudachi tokenized as-is.
+    
+    Godan potential forms end in e-row kana + る (える, ける, せる, etc.)
+    When the tokenizer's base form equals the surface, it might be a potential.
+    
+    Returns:
+        (true_base, is_potential) or None if not a potential form.
+        true_base: The actual dictionary form (e.g., 飲む from 飲める)
+        is_potential: Always True when returning a match
+    """
+    # Only check when surface == base (tokenizer didn't find original form)
+    if surface != base:
+        return None
+    
+    # Must end in る and be at least 2 characters
+    if not surface.endswith("る") or len(surface) < 2:
+        return None
+    
+    # Check each potential ending pattern
+    for pot_ending, orig_ending in GODAN_POTENTIAL_MAP.items():
+        if surface.endswith(pot_ending) and len(surface) > len(pot_ending):
+            # Extract stem and construct original form
+            stem = surface[:-len(pot_ending)]
+            true_base = stem + orig_ending
+            return (true_base, True)
+    
+    return None
+
+
+def is_valid_godan_potential(potential_form: str, true_base: str, jmdict) -> bool:
+    """
+    Validate that the computed true base exists in JMDict.
+    
+    This prevents false positives like treating 食べる (ichidan) as a potential.
+    """
+    # Look up the true base in JMDict
+    meaning = jmdict.lookup(true_base)
+    return meaning is not None
+
+
+
+
 def make_past_tense(verb: str) -> str:
     """
     Convert English verb to past tense using lemminflect library.
