@@ -22,10 +22,10 @@ from models import (
 )
 from services.analyzer import JapaneseAnalyzer
 from services.analysis import (
-    analyze_text,
-    analyze_simple,
-    analyze_full,
-    analyze_ultra,
+    process_text,
+    process_lite,
+    process_pro,
+    process_ultra,
     deconjugate_word,
     conjugate_word,
     tokenize_raw,
@@ -131,7 +131,7 @@ async def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
     - Component tokens for compound words
     """
     try:
-        return analyze_text(request.text)
+        return process_text(request.text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
 
@@ -147,7 +147,7 @@ async def analyze_lite_endpoint(request: AnalyzeRequest) -> SimpleAnalyzeRespons
     - Conjugation hint for verbs/adjectives
     """
     try:
-        return analyze_simple(request.text)
+        return process_lite(request.text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
 
@@ -161,7 +161,7 @@ async def analyze_pro_endpoint(request: AnalyzeRequest) -> FullAnalyzeResponse:
     Best for studying sentence structure.
     """
     try:
-        return analyze_full(request.text)
+        return process_pro(request.text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
 
@@ -175,7 +175,7 @@ async def analyze_ultra_endpoint(request: AnalyzeRequest) -> UltraAnalyzeRespons
     sorted by popularity. Best for comprehensive vocabulary study.
     """
     try:
-        return analyze_ultra(request.text)
+        return process_ultra(request.text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
 

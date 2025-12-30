@@ -6,7 +6,7 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root / "src"))
 
-from services.analysis import analyze_full
+from services.analysis import process_pro
 
 test_sentences = [
     "私は学生ではありません",
@@ -19,12 +19,12 @@ test_sentences = [
     "これは問題であります",
 ]
 
-print("Testing analyze_full with copula phrases")
+print("Testing process_pro with copula phrases")
 print("="*60)
 
 for sentence in test_sentences:
     print(f"\n=== {sentence} ===")
-    result = analyze_full(sentence)
+    result = process_pro(sentence)
     for phrase in result.phrases:
         pos = phrase.pos
         base = phrase.base

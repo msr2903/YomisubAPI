@@ -78,7 +78,7 @@ from services.conjugation.helpers import (
 # ============================================================================
 
 
-def analyze_text(text: str) -> AnalyzeResponse:
+def process_text(text: str) -> AnalyzeResponse:
     """Analyze Japanese text and return structured token information."""
     analyzer = JapaneseAnalyzer.get_instance()
     tokenizer = analyzer._tokenizer
@@ -347,7 +347,7 @@ def analyze_text(text: str) -> AnalyzeResponse:
     return AnalyzeResponse(tokens=response_tokens, count=len(response_tokens))
 
 
-def analyze_simple(text: str) -> SimpleAnalyzeResponse:
+def process_lite(text: str) -> SimpleAnalyzeResponse:
     """Vocabulary-focused analysis, filtering out grammar words."""
     analyzer = JapaneseAnalyzer.get_instance()
     tokenizer = analyzer._tokenizer
@@ -531,7 +531,7 @@ def analyze_simple(text: str) -> SimpleAnalyzeResponse:
     return SimpleAnalyzeResponse(vocabulary=vocabulary, count=len(vocabulary), text_result="\n".join(text_lines))
 
 
-def analyze_full(text: str) -> FullAnalyzeResponse:
+def process_pro(text: str) -> FullAnalyzeResponse:
     """Full analysis including ALL tokens with grammar explanations."""
     analyzer = JapaneseAnalyzer.get_instance()
     tokenizer = analyzer._tokenizer
@@ -767,7 +767,7 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
     return FullAnalyzeResponse(phrases=phrases, count=len(phrases), text_result="\n".join(text_lines))
 
 
-def analyze_ultra(text: str) -> UltraAnalyzeResponse:
+def process_ultra(text: str) -> UltraAnalyzeResponse:
     """Ultra analysis with ALL meanings and tags from JMDict."""
     analyzer = JapaneseAnalyzer.get_instance()
     tokenizer = analyzer._tokenizer

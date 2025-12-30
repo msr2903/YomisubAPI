@@ -2,7 +2,7 @@
 import sys
 sys.path.insert(0, 'src')
 
-from services.analysis import analyze_full, analyze_simple, analyze_ultra
+from services.analysis import process_pro, process_lite, process_ultra
 from services.conjugation.helpers import detect_godan_potential
 
 def test_godan_potential():
@@ -22,7 +22,7 @@ def test_godan_potential():
     for word in test_words:
         print(f"\nAnalyzing: {word}")
         try:
-            result = analyze_full(word)
+            result = process_pro(word)
             if not result.phrases:
                 print("  No tokens found")
                 continue
