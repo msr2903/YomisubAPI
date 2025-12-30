@@ -49,11 +49,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             const endpoints = {
-                'lite': '/analyze_lite',
-                'pro': '/analyze_pro',
-                'ultra': '/analyze_ultra'
+                'lite': '/process_lite',
+                'pro': '/process_pro',
+                'ultra': '/process_ultra'
             };
-            const endpoint = endpoints[currentMode] || '/analyze_pro';
+            const endpoint = endpoints[currentMode] || '/process_pro';
             
             console.log('Fetching:', endpoint, 'with text:', text);
             
