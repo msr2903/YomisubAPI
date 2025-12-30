@@ -115,6 +115,8 @@ textarea:focus {
 .controls {
     display: flex;
     gap: 1rem;
+    margin-top: 1rem;
+    align-items: stretch;
 }
 
 button {
@@ -156,53 +158,47 @@ button:active {
     transform: translateY(0);
 }
 
-/* Mode Selector */
-.mode-selector {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    padding: 0.25rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
 }
 
-.mode-btn {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.75rem 0.5rem;
-    background: transparent;
-    border: 2px solid transparent;
-    border-radius: 10px;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
+/* Mode Dropdown */
+.mode-dropdown {
+    flex: 1.5;
+    padding: 1rem 1.25rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a0a0c0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6,9 12,15 18,9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
     transition: all 0.2s ease;
 }
 
-.mode-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text-primary);
-}
-
-.mode-btn.active {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(79, 70, 229, 0.2) 100%);
+.mode-dropdown:hover {
     border-color: var(--accent-primary);
-    color: white;
-    box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+    background-color: rgba(99, 102, 241, 0.1);
 }
 
-.mode-icon {
-    font-size: 1.25rem;
+.mode-dropdown:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
-.mode-label {
-    font-weight: 600;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+.mode-dropdown option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 0.5rem;
 }
 
 .layer-number {
@@ -210,6 +206,23 @@ button:active {
     font-weight: 700;
     margin-right: 0.25rem;
 }
+
+.error-message {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.callout-info {
+    padding: 0.75rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
 
 
 /* Results Area */

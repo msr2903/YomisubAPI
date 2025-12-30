@@ -5,19 +5,24 @@ const resultsArea = document.getElementById('results-area');
 const detailsPanel = document.getElementById('details-panel');
 const detailsContent = document.getElementById('details-content');
 const emptyState = document.getElementById('empty-state');
+const modeSelect = document.getElementById('mode-select');
+const analyzeBtn = document.getElementById('analyze-btn');
 
 // State
 let currentTokens = [];
-let currentMode = 'pro'; // Default mode
+let currentMode = 'pro';
 
-// Mode selector
-const modeButtons = document.querySelectorAll('.mode-btn');
-modeButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        modeButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentMode = btn.dataset.mode;
-    });
+// Event listeners
+analyzeBtn.addEventListener('click', analyze);
+modeSelect.addEventListener('change', (e) => {
+    currentMode = e.target.value;
+});
+
+// Allow Enter key in textarea (with Ctrl/Cmd) to trigger analysis
+inputArea.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        analyze();
+    }
 });
 
 async function analyze() {
@@ -42,21 +47,24 @@ async function analyze() {
             body: JSON.stringify({ text }),
         });
 
-        if (!response.ok) throw new Error('Analysis failed');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP ${response.status}`);
+        }
 
         const data = await response.json();
         renderResults(data, currentMode);
     } catch (err) {
         console.error(err);
-        resultsArea.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+        resultsArea.innerHTML = `<div class="error-message">Error: ${err.message}</div>`;
     } finally {
         setLoading(false);
     }
 }
 
 function setLoading(isLoading) {
-    const buttons = document.querySelectorAll('button');
-    buttons.forEach(btn => btn.disabled = isLoading);
+    analyzeBtn.disabled = isLoading;
+    analyzeBtn.textContent = isLoading ? 'Analyzing...' : 'Analyze';
     resultsArea.style.opacity = isLoading ? '0.5' : '1';
 }
 
@@ -80,32 +88,32 @@ function renderResults(data, mode) {
     }
 
     items.forEach((item, index) => {
-        // Create token element
         const tokenEl = document.createElement('div');
         tokenEl.className = 'token';
         tokenEl.textContent = item.word || item.surface;
         tokenEl.dataset.index = index;
         
-        // Store item for click handler
         currentTokens.push(item);
 
         tokenEl.onclick = () => {
-            // Active state
             document.querySelectorAll('.token').forEach(t => t.classList.remove('active'));
             tokenEl.classList.add('active');
-            
             showDetails(item, mode);
         };
 
         resultsArea.appendChild(tokenEl);
     });
+    
+    // Auto-select first token
+    if (items.length > 0) {
+        resultsArea.querySelector('.token').click();
+    }
 }
 
 function showDetails(item, mode) {
     emptyState.style.display = 'none';
     detailsContent.style.display = 'block';
 
-    // Extract fields based on mode
     const surface = item.word || item.surface;
     const base = item.base;
     const reading = item.reading;
@@ -120,7 +128,7 @@ function showDetails(item, mode) {
                 <div class="conjugation-hint">${item.conjugation_hint}</div>
             </div>
         `;
-    } else if ((mode === 'pro' || mode === 'ultra') && item.conjugation && item.conjugation.chain.length > 0) {
+    } else if ((mode === 'pro' || mode === 'ultra') && item.conjugation && item.conjugation.chain && item.conjugation.chain.length > 0) {
         const chain = item.conjugation.chain.map((layer, idx) => `
             <div class="tree-node">
                 <span class="layer-number">${idx + 1}.</span>
@@ -147,23 +155,21 @@ function showDetails(item, mode) {
         `;
     }
 
-    // Meaning logic - handle single string or array
+    // Meaning logic
     let meaningHtml = '';
     if (mode === 'ultra' && item.meanings && item.meanings.length > 0) {
-        // Ultra mode: show all meanings as a list
         const meaningsList = item.meanings.map(m => 
             `<li class="meaning-item">${m}</li>`
         ).join('');
         meaningHtml = `
             <div class="detail-section">
-                <div class="section-title">All Meanings</div>
+                <div class="section-title">All Meanings (${item.meanings.length})</div>
                 <ul class="meaning-list">
                     ${meaningsList}
                 </ul>
             </div>
         `;
     } else {
-        // Pro/Lite mode: single meaning string
         const meaning = item.meaning || '';
         const meaningList = meaning ? meaning.split(/;|\//).filter(m => m.trim().length > 0)
             .map(m => `<li class="meaning-item">${m.trim()}</li>`).join('') 
@@ -189,15 +195,13 @@ function showDetails(item, mode) {
         `;
     }
 
-    // Grammar Note (Pro and Ultra)
+    // Grammar Note
     let grammarHtml = '';
     if (item.grammar_note) {
         grammarHtml = `
             <div class="detail-section">
                 <div class="section-title">Grammar Note</div>
-                <div class="callout-info" style="padding:0.75rem; background:rgba(59,130,246,0.1); border-radius:8px; font-size:0.9rem;">
-                    ${item.grammar_note}
-                </div>
+                <div class="callout-info">${item.grammar_note}</div>
             </div>
         `;
     }

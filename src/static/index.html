@@ -21,24 +21,13 @@
             <div class="glass-panel">
                 <textarea id="jp-input" placeholder="Paste Japanese text here... (e.g. 食べられなかった)"></textarea>
                 
-                <!-- Mode Selector -->
-                <div class="mode-selector">
-                    <button class="mode-btn" data-mode="lite" title="Vocabulary only, no grammar">
-                        <span class="mode-icon">📝</span>
-                        <span class="mode-label">Lite</span>
-                    </button>
-                    <button class="mode-btn active" data-mode="pro" title="All tokens with grammar">
-                        <span class="mode-icon">⚡</span>
-                        <span class="mode-label">Pro</span>
-                    </button>
-                    <button class="mode-btn" data-mode="ultra" title="Complete JMDict data">
-                        <span class="mode-icon">🔥</span>
-                        <span class="mode-label">Ultra</span>
-                    </button>
-                </div>
-
-                <div class="controls" style="margin-top: 1rem;">
-                    <button class="btn-primary" onclick="analyze()">Analyze</button>
+                <div class="controls">
+                    <select id="mode-select" class="mode-dropdown">
+                        <option value="lite">📝 Lite - Vocabulary Only</option>
+                        <option value="pro" selected>⚡ Pro - Full Grammar</option>
+                        <option value="ultra">🔥 Ultra - All JMDict Data</option>
+                    </select>
+                    <button class="btn-primary" id="analyze-btn">Analyze</button>
                 </div>
             </div>
 
