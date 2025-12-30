@@ -100,7 +100,12 @@ def analyze_text(text: str) -> AnalyzeResponse:
             # Check if this is a copula phrase with detailed breakdown
             copula_info = get_copula_info(phrase_text)
             if copula_info:
-                base_form, meaning, layers = copula_info
+                base_form, default_meaning, layers = copula_info
+                
+                # Look up base form meaning in JMDict, fall back to default
+                jmdict_meaning = jmdict.lookup(base_form)
+                meaning = jmdict_meaning if jmdict_meaning else default_meaning
+                
                 # Build conjugation layers
                 conj_layers = [
                     ConjugationLayer(form="", type=layer[0], english=layer[1], meaning=layer[2])
@@ -110,7 +115,7 @@ def analyze_text(text: str) -> AnalyzeResponse:
                 conj_info = ConjugationInfo(
                     chain=conj_layers,
                     summary=layer_summary,
-                    translation_hint=meaning,
+                    translation_hint=default_meaning,  # Keep the conjugated hint
                 )
                 response_tokens.append(TokenResponse(
                     word=phrase_text,
@@ -494,7 +499,12 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
             # Check if this is a copula phrase with detailed breakdown
             copula_info = get_copula_info(phrase)
             if copula_info:
-                base_form, meaning, layers = copula_info
+                base_form, default_meaning, layers = copula_info
+                
+                # Look up base form meaning in JMDict, fall back to default
+                jmdict_meaning = jmdict.lookup(base_form)
+                meaning = jmdict_meaning if jmdict_meaning else default_meaning
+                
                 # Build conjugation layers
                 conj_layers = [
                     ConjugationLayer(form="", type=layer[0], english=layer[1], meaning=layer[2])
@@ -504,7 +514,7 @@ def analyze_full(text: str) -> FullAnalyzeResponse:
                 conj_info = ConjugationInfo(
                     chain=conj_layers,
                     summary=layer_summary,
-                    translation_hint=meaning,
+                    translation_hint=default_meaning,  # Keep the conjugated hint
                 )
                 phrases.append(PhraseToken(
                     surface=phrase, base=base_form, reading=phrase, pos="Copula",
