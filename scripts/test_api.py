@@ -65,27 +65,27 @@ def main():
     # Test /analyze with complex verb
     test_endpoint(
         "Analyze - Complex Verb",
-        "POST", "/analyze",
+        "POST", "/process",
         {"text": "食べられなかった"}
     )
     
     # Test /analyze_simple
     test_endpoint(
         "Analyze Simple - Vocabulary Focus",
-        "POST", "/analyze_simple",
+        "POST", "/process_lite",
         {"text": "日本語を勉強しています。難しいですが、面白いです。"}
     )
     
     # Test /analyze_full
     test_endpoint(
         "Analyze Full - Grammar Study",
-        "POST", "/analyze_full",
+        "POST", "/process_pro",
         {"text": "言われてみれば分かる"}
     )
     
     test_endpoint(
         "Analyze Full - Names (JMNedict)",
-        "POST", "/analyze_full",
+        "POST", "/process_pro",
         # Expect Suzuki and Tanaka
         {"text": "鈴木さんは田中さんです"}
     )

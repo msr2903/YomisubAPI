@@ -119,7 +119,7 @@ async def health() -> dict[str, str]:
 # ============================================================================
 
 
-@app.post("/analyze", response_model=AnalyzeResponse, tags=["Analysis"])
+@app.post("/process", response_model=AnalyzeResponse, tags=["Analysis"])
 async def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
     """
     Analyze Japanese text and return structured token information.
@@ -136,7 +136,7 @@ async def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
 
 
-@app.post("/analyze_lite", response_model=SimpleAnalyzeResponse, tags=["Analysis"])
+@app.post("/process_lite", response_model=SimpleAnalyzeResponse, tags=["Analysis"])
 async def analyze_lite_endpoint(request: AnalyzeRequest) -> SimpleAnalyzeResponse:
     """
     Vocabulary-focused analysis. Filters out grammar words.
@@ -152,7 +152,7 @@ async def analyze_lite_endpoint(request: AnalyzeRequest) -> SimpleAnalyzeRespons
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
 
 
-@app.post("/analyze_pro", response_model=FullAnalyzeResponse, tags=["Analysis"])
+@app.post("/process_pro", response_model=FullAnalyzeResponse, tags=["Analysis"])
 async def analyze_pro_endpoint(request: AnalyzeRequest) -> FullAnalyzeResponse:
     """
     Pro analysis including ALL tokens with grammar explanations.
@@ -166,7 +166,7 @@ async def analyze_pro_endpoint(request: AnalyzeRequest) -> FullAnalyzeResponse:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
 
 
-@app.post("/analyze_ultra", response_model=UltraAnalyzeResponse, tags=["Analysis"])
+@app.post("/process_ultra", response_model=UltraAnalyzeResponse, tags=["Analysis"])
 async def analyze_ultra_endpoint(request: AnalyzeRequest) -> UltraAnalyzeResponse:
     """
     Ultra analysis with complete JMDict data.
