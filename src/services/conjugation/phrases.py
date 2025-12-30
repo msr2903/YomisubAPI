@@ -374,8 +374,8 @@ COMPOUND_PHRASES = {
         ("でした", "copula (polite) + past: was"),
         ("でしょう", "copula (polite) + conjectural: probably"),
     ],
-    # === だろ patterns ===
-    "だろ": [
+    # === だろう patterns ===
+    "だろう": [
         ("だろう", "copula (plain) + conjectural: probably"),
     ],
     # === らしい patterns ===
