@@ -61,10 +61,10 @@ app = FastAPI(
 - **Deconjugation**: Break down complex forms like 食べられなかった
 
 ## Endpoints
-- `/analyze` - Full structured analysis
-- `/analyze_lite` - Vocabulary-focused (no grammar words)
-- `/analyze_pro` - All tokens with grammar explanations
-- `/analyze_ultra` - Complete JMDict data with all meanings and tags
+- `/process` - Full structured analysis
+- `/process_lite` - Vocabulary-focused (no grammar words)
+- `/process_pro` - All tokens with grammar explanations
+- `/process_ultra` - Complete JMDict data with all meanings and tags
 - `/deconjugate` - Deep analysis of single conjugated word
 - `/conjugate` - Generate conjugations from dictionary form
 """,
